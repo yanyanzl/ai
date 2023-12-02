@@ -1,0 +1,2 @@
+# ai
+first ai project
