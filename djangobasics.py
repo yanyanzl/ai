@@ -95,6 +95,201 @@
     # The keyword arguments are made up of any named parts matched by the path expression that are provided, overridden by any arguments specified in the optional kwargs argument to django.urls.path() or django.urls.re_path().
 # If no URL pattern matches, or if an exception is raised during any point in this process, Django invokes an appropriate error-handling view. See Error handling below.
 
+# Database setup
+
+    # Now, open up mysite/settings.py. It’s a normal Python module with module-level variables representing Django settings.
+    # By default, the configuration uses SQLite. If you’re new to databases, or you’re just interested in trying Django, this is the easiest choice. SQLite is included in Python, so you won’t need to install anything else to support your database.
+
+    # If you wish to use another database, install the appropriate database bindingslike bellow
+        # If you’re using PostgreSQL, you’ll need the psycopg or psycopg2 package: pip install psycopg2 or conda install psycopg2
+        # change the following keys in the DATABASES 'default' item to match your database connection settings:
+            # DATABASES = {
+            #     "default": {
+            #         "ENGINE": "django.db.backends.postgresql_psycopg2",
+            #         "NAME": "[YOUR_DATABASE_NAME]",
+            #         "USER": "[YOUR_USER_NAME]",
+            #         "PASSWORD": "",
+            #         "HOST": "localhost",
+            #         "PORT": "",
+            #     }
+            # }
+
+    # Some of these applications make use of at least one database table, though, so we need to create the tables in the database before we can use them. To do that, run the following command:
+        # python manage.py migrate
+        # The migrate command looks at the INSTALLED_APPS setting and creates any necessary database tables according to the database settings in your mysite/settings.py file and the database migrations shipped with the app (we’ll cover those later). You’ll see a message for each migration it applies. If you’re interested, run the command-line client for your database and type \dt (PostgreSQL)
+
+# Creating models
+    # define your models in models.py, the database layout with additional metadata.
+    # Don’t repeat yourself (DRY) principle: Every distinct concept and/or piece of data should live in one, and only one, place. Redundancy is bad. Normalization is good.
+
+    # Activating models: we need to tell our project that the polls app is installed. Django apps are “pluggable”: You can use an app in multiple projects, and you can distribute apps, because they don’t have to be tied to a given Django installation. 
+    # To include the app in our project, we need to add a reference to its configuration class in the INSTALLED_APPS setting. The PollsConfig class is in the polls/apps.py file, so its dotted path is 'polls.apps.PollsConfig'. Edit the mysite/settings.py file and add that dotted path to the INSTALLED_APPS setting. It’ll look like this:
+        # mysite/settings.py
+        # INSTALLED_APPS = [
+        #     "polls.apps.PollsConfig",
+        #     "django.contrib.admin",
+        #     ...
+        # ]
+        # Now Django knows to include the polls app
+
+    # Prepare for migration.  :
+        # python manage.py makemigrations polls
+        
+        # By running makemigrations, you’re telling Django that you’ve made some changes to your models (in this case, you’ve made new ones) and that you’d like the changes to be stored as a migration.
+        
+        # Migrations are how Django stores changes to your models (and thus your database schema) - they’re files on disk. You can read the migration for your new model if you like; it’s the file polls/migrations/0001_initial.py. 
+
+        # There’s a command that will run the migrations for you and manage your database schema automatically. The sqlmigrate command takes migration names and returns their SQL. The sqlmigrate command doesn’t actually run the migration on your database - instead, it prints it to the screen so that you can see what SQL Django thinks is required. It’s useful for checking what Django is going to do or if you have database administrators who require SQL scripts for changes.
+        # python manage.py sqlmigrate polls 0001
+
+        # python manage.py check 
+            # this checks for any problems in your project without making migrations or touching the database.
+
+    # Migrate: run migrate to create those model tables in your database:
+        # python manage.py migrate
+        # The migrate command takes all the migrations that haven’t been applied (Django tracks which ones are applied using a special table in your database called django_migrations) and runs them against your database - essentially, synchronizing the changes you made to your models with the schema in the database.
+
+# Playing with the API
+    # python manage.py shell
+    # We’re using this instead of simply typing “python”, because manage.py sets the DJANGO_SETTINGS_MODULE environment variable, which gives Django the Python import path to your mysite/settings.py file.
+        '''
+        >>> from polls.models import Choice, Question  # Import the model classes we just wrote.
+
+        # No questions are in the system yet.
+        >>> Question.objects.all()
+        <QuerySet []>
+
+        # Create a new Question.
+        # Support for time zones is enabled in the default settings file, so
+        # Django expects a datetime with tzinfo for pub_date. Use timezone.now()
+        # instead of datetime.datetime.now() and it will do the right thing.
+        >>> from django.utils import timezone
+        >>> q = Question(question_text="What's new?", pub_date=timezone.now())
+
+        # Save the object into the database. You have to call save() explicitly.
+        >>> q.save()
+
+        # Now it has an ID.
+        >>> q.id
+        1
+
+        # Access model field values via Python attributes.
+        >>> q.question_text
+        "What's new?"
+        >>> q.pub_date
+        datetime.datetime(2012, 2, 26, 13, 0, 0, 775217, tzinfo=datetime.timezone.utc)
+
+        # Change values by changing the attributes, then calling save().
+        >>> q.question_text = "What's up?"
+        >>> q.save()
+
+        # objects.all() displays all the questions in the database.
+        >>> Question.objects.all()
+        <QuerySet [<Question: Question object (1)>]>
+        '''
+
+        '''
+        >>> from polls.models import Choice, Question
+
+        # Make sure our __str__() addition worked.
+        >>> Question.objects.all()
+        <QuerySet [<Question: What's up?>]>
+
+        # Django provides a rich database lookup API that's entirely driven by
+        # keyword arguments.
+        >>> Question.objects.filter(id=1)
+        <QuerySet [<Question: What's up?>]>
+        >>> Question.objects.filter(question_text__startswith="What")
+        <QuerySet [<Question: What's up?>]>
+
+        # Get the question that was published this year.
+        >>> from django.utils import timezone
+        >>> current_year = timezone.now().year
+        >>> Question.objects.get(pub_date__year=current_year)
+        <Question: What's up?>
+
+        # Request an ID that doesn't exist, this will raise an exception.
+        >>> Question.objects.get(id=2)
+        Traceback (most recent call last):
+            ...
+        DoesNotExist: Question matching query does not exist.
+
+        # Lookup by a primary key is the most common case, so Django provides a
+        # shortcut for primary-key exact lookups.
+        # The following is identical to Question.objects.get(id=1).
+        >>> Question.objects.get(pk=1)
+        <Question: What's up?>
+
+        # Make sure our custom method worked.
+        >>> q = Question.objects.get(pk=1)
+        >>> q.was_published_recently()
+        True
+
+        # Give the Question a couple of Choices. The create call constructs a new
+        # Choice object, does the INSERT statement, adds the choice to the set
+        # of available choices and returns the new Choice object. Django creates
+        # a set to hold the "other side" of a ForeignKey relation
+        # (e.g. a question's choice) which can be accessed via the API.
+        >>> q = Question.objects.get(pk=1)
+
+        # Display any choices from the related object set -- none so far.
+        >>> q.choice_set.all()
+        <QuerySet []>
+
+        # Create three choices.
+        >>> q.choice_set.create(choice_text="Not much", votes=0)
+        <Choice: Not much>
+        >>> q.choice_set.create(choice_text="The sky", votes=0)
+        <Choice: The sky>
+        >>> c = q.choice_set.create(choice_text="Just hacking again", votes=0)
+
+        # Choice objects have API access to their related Question objects.
+        >>> c.question
+        <Question: What's up?>
+
+        # And vice versa: Question objects get access to Choice objects.
+        >>> q.choice_set.all()
+        <QuerySet [<Choice: Not much>, <Choice: The sky>, <Choice: Just hacking again>]>
+        >>> q.choice_set.count()
+        3
+
+        # The API automatically follows relationships as far as you need.
+        # Use double underscores to separate relationships.
+        # This works as many levels deep as you want; there's no limit.
+        # Find all Choices for any question whose pub_date is in this year
+        # (reusing the 'current_year' variable we created above).
+        >>> Choice.objects.filter(question__pub_date__year=current_year)
+        <QuerySet [<Choice: Not much>, <Choice: The sky>, <Choice: Just hacking again>]>
+
+        # Let's delete one of the choices. Use delete() for that.
+        >>> c = q.choice_set.filter(choice_text__startswith="Just hacking")
+        >>> c.delete()
+
+        For more information on model relations, see Accessing related objects. For more on how to use double underscores to perform field lookups via the API, see Field lookups. For full details on the database API, see our Database API reference.
+        '''
+
+# Introducing the Django Admin
+    # Generating admin sites for your staff or clients to add, change, and delete content is tedious work that doesn’t require much creativity. For that reason, Django entirely automates creation of admin interfaces for models.
+
+    # Django was written in a newsroom environment, with a very clear separation between “content publishers” and the “public” site. Site managers use the system to add news stories, events, sports scores, etc., and that content is displayed on the public site. Django solves the problem of creating a unified interface for site administrators to edit content.
+
+    # The admin isn’t intended to be used by site visitors. It’s for site managers.
+
+    # Creating an admin user: python manage.py createsuperuser
+    # now you can login to the site http://127.0.0.1:8000/admin/ by admin
+
+    # Make the poll app modifiable in the admin. we need to tell the admin that Question objects have an admin interface. To do this, open the polls/admin.py file, and edit it to look like this:
+        # from django.contrib import admin
+
+        # from .models import Question
+
+        # admin.site.register(Question)
+
+# Views : web pages
+    # In Django, web pages and other content are delivered by views. Each view is represented by a Python function (or method, in the case of class-based views)
+
+    # To get from a URL to a view, Django uses what are known as ‘URLconfs’. A URLconf maps URL patterns to views. refer to URL dispatcher for more information.
+
 import django
 
 print(django.get_version())
