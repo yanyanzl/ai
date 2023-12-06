@@ -152,7 +152,8 @@
 # Playing with the API
     # python manage.py shell
     # We’re using this instead of simply typing “python”, because manage.py sets the DJANGO_SETTINGS_MODULE environment variable, which gives Django the Python import path to your mysite/settings.py file.
-        '''
+        
+'''
         >>> from polls.models import Choice, Question  # Import the model classes we just wrote.
 
         # No questions are in the system yet.
@@ -188,7 +189,7 @@
         <QuerySet [<Question: Question object (1)>]>
         '''
 
-        '''
+'''
         >>> from polls.models import Choice, Question
 
         # Make sure our __str__() addition worked.
@@ -289,6 +290,55 @@
     # In Django, web pages and other content are delivered by views. Each view is represented by a Python function (or method, in the case of class-based views)
 
     # To get from a URL to a view, Django uses what are known as ‘URLconfs’. A URLconf maps URL patterns to views. refer to URL dispatcher for more information.
+
+    # Write views that actually do something
+    # Each view is responsible for doing one of two things: returning an HttpResponse object containing the content for the requested page, or raising an exception such as Http404. The rest is up to you.
+
+    # Your view can read records from a database, or not. It can use a template system such as Django’s – or a third-party Python template system – or not. It can generate a PDF file, output XML, create a ZIP file on the fly, anything you want, using whatever Python libraries you want.
+
+    # All Django wants is that HttpResponse. Or an exception.
+
+# Template for Views:
+    # create a directory called templates in your polls directory. Django will look for templates in there.
+
+    # Your project’s TEMPLATES setting describes how Django will load and render templates. The default settings file configures a DjangoTemplates backend whose APP_DIRS option is set to True. By convention DjangoTemplates looks for a “templates” subdirectory in each of the INSTALLED_APPS.
+
+    # Within the templates directory you have just created, create another directory called polls, and within that create a file called index.html. In other words, your template should be at polls/templates/polls/index.html. Because of how the app_directories template loader works as described above, you can refer to this template within Django as polls/index.html.
+
+    # Use the template system
+'''
+        <h1>{{ question.question_text }}</h1>
+        <ul>
+        {% for choice in question.choice_set.all %}
+            <li>{{ choice.choice_text }}</li>
+        {% endfor %}
+        </ul>
+'''
+    # The template system uses dot-lookup syntax to access variable attributes. In the example of {{ question.question_text }}, first Django does a dictionary lookup on the object question. Failing that, it tries an attribute lookup – which works, in this case. If attribute lookup had failed, it would’ve tried a list-index lookup.
+    # Method-calling happens in the {% for %} loop: question.choice_set.all is interpreted as the Python code question.choice_set.all(), which returns an iterable of Choice objects and is suitable for use in the {% for %} tag.
+
+    # See the template guide for more about templates
+
+    # Removing hardcoded URLs in templates
+    # from :
+    # <li><a href="/polls/{{ question.id }}/">{{ question.question_text }}</a></li>
+    # to :
+    # <li><a href="{% url 'detail' question.id %}">{{ question.question_text }}</a></li>
+    
+    # The way this works is by looking up the URL definition as specified in the polls.urls module. You can see exactly where the URL name of ‘detail’ is defined below:
+    # the 'name' value as called by the {% url %} template tag
+    # path("<int:question_id>/", views.detail, name="detail"),
+
+
+# Namespaceing URL names 
+
+    # For example, the polls app has a detail view, and so might an app on the same project that is for a blog. How does one make it so that Django knows which app view to create for a url when using the {% url %} template tag?
+
+    # The answer is to add namespaces to your URLconf. In the polls/urls.py file, go ahead and add an app_name to set the application namespace: app_name = "polls"
+    
+    # Now change your polls/index.html to like: 
+        # <li><a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a></li>
+
 
 import django
 
