@@ -1,0 +1,22 @@
+
+
+<!-- comments here this is the index page for polls -->
+
+<!doctype html>
+<html lang="en-US">
+  <head size="16">
+    <meta charset="utf-8" />
+    <title>Polls app results</title>
+  </head>
+  <h1>{{ question.question_text }}</h1>
+
+  <ul>
+  {% for choice in question.choice_set.all %}
+      <li>{{ choice.choice_text }} -- {{ choice.votes }} vote{{ choice.votes|pluralize }}</li>
+  {% endfor %}
+  </ul>
+  
+  <a href="{% url 'polls:detail' question.id %}">Vote again?</a>
+</html>
+
+

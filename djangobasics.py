@@ -339,6 +339,8 @@
     # Now change your polls/index.html to like: 
         # <li><a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a></li>
 
+# Use generic views: Less code is better
+# Generic views abstract common patterns to the point where you don’t even need to write Python code to write an app. For example, the ListView and DetailView generic views abstract the concepts of “display a list of objects” and “display a detail page for a particular type of object” respectively.
 
 import django
 

@@ -4,17 +4,23 @@
 
 <!doctype html>
 <html lang="en-US">
-  <head>
+  <head size="16">
     <meta charset="utf-8" />
     <title>My test page</title>
   </head>
   <body>
     <p>This is my page</p>
     
+    <!-- comments this part will be changed (rendered) by django -->
+
+    <!-- if parameter is not empty -->
     {% if latest_question_list %}
     <ul>
     {% for question in latest_question_list %}
+
+        <!-- List all questions and give them a url -->
         <li><a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a></li>
+
     {% endfor %}
     </ul>
     {% else %}
