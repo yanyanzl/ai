@@ -25,4 +25,7 @@ urlpatterns = [
     path("polls/", include("polls.urls")),
     
     path("admin/", admin.site.urls),
+
+    # Add django-debug-toolbar’s URLs to your project’s URLconf:
+    path("debug/", include("debug_toolbar.urls")),
 ]

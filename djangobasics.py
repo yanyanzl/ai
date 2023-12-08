@@ -403,6 +403,12 @@
 # python -c "import django; print(django.__path__)"
 # the above command finding where the Django source files are located on your system
 
+# Plug-in third-party packages
+    # Django Debug Toolbar : python -m pip install django-debug-toolbar
+    # he toolbar helps you understand how your application functions and to identify problems. It does so by providing panels that provide debug information about the current request and response.
+
+    # Third-party packages that integrate with Django need some post-installation setup to integrate them with your project. Often you will need to add the package’s Django app to your INSTALLED_APPS setting. Some packages need other changes, like additions to your URLconf (urls.py).
+
 import django
 
 print(django.get_version())
