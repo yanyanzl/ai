@@ -1,4 +1,5 @@
 git status
+git pull
 git add *
 git commit -a -m "update:$1"
 git push
