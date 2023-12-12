@@ -1,0 +1,69 @@
+
+<!-- comments here this is the index page for polls -->
+
+
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>Investment AI</title>
+  </head>
+
+  <body>
+  <form action="{% url 'aiinvest:index'  %}" method="post">
+
+    <!-- This tag is used for CSRF protection, as described in the documentation for Cross Site Request Forgeries. -->
+    {% comment "Optional note" %}
+    <p>The CSRF middleware and template tag provides easy-to-use protection against Cross Site Request Forgeries. This type of attack occurs when a malicious website contains a link, a form button or some JavaScript that is intended to perform some action on your website, using the credentials of a logged-in user who visits the malicious site in their browser. A related type of attack, ‘login CSRF’, where an attacking site tricks a user’s browser into logging into a site with someone else’s credentials, is also covered.</p>
+    {% endcomment %}
+
+    {% csrf_token %}
+    
+    <fieldset>
+        <legend><h1> reserved here </h1></legend>
+
+        {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+        {% comment "Optional note" %} {% for asset_data in asset_data_list %} {% endfor %} {% endcomment %}
+    
+        
+
+            <!-- The above template displays a radio button for each question choice. The value of each radio button is the associated question choice’s ID. The name of each radio button is "choice". That means, when somebody selects one of the radio buttons and submits the form, it’ll send the POST data choice=# where # is the ID of the selected choice. This is the basic concept of HTML forms. -->
+            <!-- forloop.counter indicates how many times the for tag has gone through its loop -->
+            <!-- you can get all the debug information for the page by the following
+              <textarea onclick="this.focus();this.select()" style="width: 100%;"> {% filter force_escape %} {% debug %} {% endfilter %}</textarea> -->
+ 
+            
+
+            <label for="assetname">{{ asset_data.asset_name }}</label><br>
+            <input type="text" id="assetname" name="assetname" value="your name"><br>
+
+            <label for="assetname">Choose An Asset:</label>
+            <select name="assetname" id="assetname">
+              <option value="volvo">Volvo</option>
+              <option value="saab">Saab</option>
+              <option value="mercedes">Mercedes</option>
+              <option value="audi">Audi</option>
+            </select>
+
+    
+
+      <input type="submit" value="Submit">
+      <input type="reset" value="Reset">
+    </fieldset>
+  </form>
+  <form>
+    <label for="gsearch">Search Google:</label>
+    <input type="search" id="gsearch" name="gsearch">
+  </form>
+  <form>
+    <label for="startdate">Start Date:</label>
+    <input type="date" id="startdate" name="startdate">
+    <label for="enddate">End Date:</label>
+    <input type="date" id="enddate" name="enddate">
+  </form>
+
+</body>
+</html>
+
+

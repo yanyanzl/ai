@@ -22,6 +22,8 @@ from django.urls import include, path
 
 urlpatterns = [
     # include will add a file for url mappings for other directories
+    path("aiinvest/", include("aiinvest.urls")),
+
     path("polls/", include("polls.urls")),
     
     path("admin/", admin.site.urls),
