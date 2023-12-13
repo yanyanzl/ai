@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>List Of Inputs in HTML</title>
+</head>
+
+<body>
+	<h1 style="color: green">
+	 List Of Inputs in HTML </h1>
+	
+	<input type="button">click Button if You agree<br><br>
+	<input type="checkbox">Check If you are 18+<br><br>
+	<input type="color">Choose the color of cloth<br><br>
+	<input type="date">Choose You birth date<br><br>
+	<input type="email" placeholder="Enter Your Mail"><br><br>
+	<input type="file">Input the required file<br><br>
+	<input type="image">Input You Image<br><br>
+	<input type="month">Month Of admission<br><br>
+	<input type="number" placeholder="Enter Your Age"><br><br>
+    <input type="password">Enter the password<br><br>
+    <input type="radio">Click If You agree<br><br>
+    <input type="range">Enter your experience level<br><br>
+    <input type="reset">Reset the form<br><br>
+    <input type="search" placeholder="Search the word"><br><br>
+    <input type="submit">Submit the form<br><br>
+    <input type="text" > Enter your views<br><br>
+
+    <form enctype="multipart/form-data" method="post" action="#" id="orderForm">
+        <table id="portfolioTable" width="auto" border="0" cellpadding="4" cellspacing="4">
+            <tr>
+                <td>Asset Ticker Name</td>
+                <td>Asset Value in USD</td>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="text" name="ticker1" />
+                </td>
+                <td>
+                    <input type="text" name="value1" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="text" name="ticker2" />
+                </td>
+                <td>
+                    <input type="text" name="value2" />
+                </td>
+            </tr>
+        </table>
+        <button type="button" class="addRow" onclick="addRow()">Add a Row</button> <br><br>
+    </form>
+
+<script>
+    
+function addRow() {
+
+    var table = document.getElementById('portfolioTable');
+    var tableRowCount = table.tBodies[0].rows.length; 
+
+    var myHtmlContent = "<tr><td><input type='text' name='ticker"+tableRowCount+"' /></td><td><input type='text' name='value"+tableRowCount+"' /></td></tr> "
+
+    var tbodyRef = document.getElementById('portfolioTable').getElementsByTagName('tbody')[0];
+
+    // Insert a row at the end of table
+    var newRow = tbodyRef.insertRow(tbodyRef.rows.length);
+
+    // Append a text node to the cell
+    newRow.innerHTML = myHtmlContent;
+
+    }
+
+
+</script>
+
+</body>
+
+</html>

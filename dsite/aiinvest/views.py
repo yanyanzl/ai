@@ -34,7 +34,7 @@ def detail(request,asset_name=""):
     # That code loads the template called aiinvest/index.html 
     template = loader.get_template("aiinvest/detail.html")
 
-    asset_data = AssetData.objects.get(asset_name=asset_name)
+    asset_data = get_object_or_404(AssetData, asset_name=asset_name)
 
     context = {
             "asset_data": asset_data,
@@ -44,7 +44,18 @@ def detail(request,asset_name=""):
     return HttpResponse(template.render(context,request))
 
 
+def result(request):
 
+    # That code loads the template called aiinvest/index.html 
+    template = loader.get_template("aiinvest/result.html")
+
+    context = {
+            "asset_data": "Place Holder",
+        }
+    if request.method == 'POST':
+        asset_name = request.POST.get('asset_name')
+    # passes the template a context. The context is a dictionary mapping template variable names to Python objects.
+    return HttpResponse(template.render(context,request))
 
 
 
@@ -73,3 +84,14 @@ def index(request):
     # return render(request, "polls/index.html", context)
     # The render() function takes the request object as its first argument, a template name as its second argument and a dictionary as its optional third argument. It returns an HttpResponse object of the given template rendered with the given context.
 
+def test(request):
+
+    # That code loads the template called aiinvest/index.html 
+    template = loader.get_template("aiinvest/testfile.html")
+
+    context = {
+            "asset_data": "Place Holder",
+        }
+
+    # passes the template a context. The context is a dictionary mapping template variable names to Python objects.
+    return HttpResponse(template.render(context,request))
