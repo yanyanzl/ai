@@ -15,32 +15,66 @@
   </head>
 
   <body>
-    <p>Here we would like to deploy the interactive Chart for portfolios</p>
+    <p>Please tell us the basic information about your portfolios bellow. Note: At least one ticker and the value you hold should be provided. </p>
     
     <!-- comments this part will be changed (rendered) by django -->
 
-    <!-- if parameter is not empty -->
+    {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
     
-    {% if asset_list %}
-    <ul>
-    {% for asset in asset_list %}
+      <form enctype="multipart/form-data" method="POST" action="{% url 'aiinvest:result'  %}" id="queryForm">
 
-        <!-- List all questions and give them a url -->
-        <li><a href="{% url 'aiinvest:detail' asset.asset_name %}">{{ asset.asset_name }}</a></li>
+        {% csrf_token %}
+        
+        <table id="portfolioTable" width="auto" border="0" cellpadding="4" cellspacing="4">
+            <tr>
+                <td>Asset Ticker Name</td>
+                <td>Asset Value in USD</td>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="text" name="ticker1" />
+                </td>
+                <td>
+                    <input type="text" name="value1" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="text" name="ticker2" />
+                </td>
+                <td>
+                    <input type="text" name="value2" />
+                </td>
+            </tr>
+        </table>
+        <button type="button" class="addRow" onclick="addRow()">Add a Row</button> <br><br>
+        <button type="submit">Calculate</button>
+    </form>
 
-    {% endfor %}
-    </ul>
-    {% else %}
-        <p>No Assets are available Now. Come back later.</p>
-    {% endif %}
-
-    <!-- here we would like to collect the portfolio information from users-->
-    <form method="POST" action="{% url 'aiinvest:result'  %}">
-      {% csrf_token %}
-      <input type="text" name="textfield">
+  <script>
       
-      <button type="submit">Upload text</button>
-      </form>
+  function addRow() {
+
+      var table = document.getElementById('portfolioTable');
+      var tableRowCount = table.tBodies[0].rows.length; 
+
+      var myHtmlContent = "<tr><td><input type='text' name='ticker"+tableRowCount+"' /></td><td><input type='text' name='value"+tableRowCount+"' /></td></tr> "
+
+      var tbodyRef = document.getElementById('portfolioTable').getElementsByTagName('tbody')[0];
+
+      // Insert a row at the end of table
+      var newRow = tbodyRef.insertRow(tbodyRef.rows.length);
+
+      // Append a text node to the cell
+      newRow.innerHTML = myHtmlContent;
+
+      }
+
+
+  </script>
+
 
   </body>
 </html>

@@ -44,19 +44,86 @@ def detail(request,asset_name=""):
     return HttpResponse(template.render(context,request))
 
 
-def result(request):
+class Result:
 
-    # That code loads the template called aiinvest/index.html 
-    template = loader.get_template("aiinvest/result.html")
+    @classmethod
+    def result(cls, request):
 
-    context = {
-            "asset_data": "Place Holder",
-        }
-    if request.method == 'POST':
-        asset_name = request.POST.get('asset_name')
-    # passes the template a context. The context is a dictionary mapping template variable names to Python objects.
-    return HttpResponse(template.render(context,request))
+        if request:
 
+            try:
+
+                if request.method == 'POST':
+
+                    ticker1 = request.POST.get('ticker1')
+                    tickers, values = cls.get_tickers(request)
+                    context = {
+                    "asset_data": "Place Holder",
+                    "tickers": tickers,
+                    "values": values,
+                    }
+                    ############### here to add the data processing function ######
+                    ###### and add the results of the data to the contxt #############
+                    # That code loads the template called aiinvest/index.html 
+                    template = loader.get_template("aiinvest/result.html")
+                    # passes the template a context. The context is a dictionary mapping template variable names to Python objects.
+                    return HttpResponse(template.render(context,request))
+                else:
+                    return render(
+                    request,
+                    "aiinvest/index.html",
+                    {
+                        # one for error_message
+                        "error_message": "Please input your portfolio information",
+                    },
+                )
+            except ValueError as e:
+            # Redisplay the portforlio input page.
+                return render(
+                    request,
+                    "aiinvest/index.html",
+                    {
+                        # one for error_message
+                        "error_message": str(e),
+                    },
+                )
+        else: 
+            Http404("Invalid Request!")
+
+
+    def get_tickers(request):
+        
+        tickers = []
+        values = []
+        if request:
+            
+            ticker_name = "ticker"
+            value_name = "value"
+            i = 1
+            post = request.POST
+            print("post is ", post)
+            ticker_namei = ticker_name+str(i)
+            value_namei = value_name+str(i)
+            print("ticker name i is :", ticker_namei)
+            while  ticker_namei in post:
+                if value_namei in post:
+                    if not post[value_namei] or not post[ticker_namei]:
+                        pass
+                    else: 
+                        values.append(post[value_namei])
+                        tickers.append(post[ticker_namei])
+                    i += 1
+                    ticker_namei = ticker_name+str(i)
+                    value_namei = value_name+str(i)
+                else:
+                    raise ValueError(f"Request with no value for ticker:{post[ticker_namei]}")
+            print("-------- tickers are ", tickers)
+            print("-------- values are ", values)
+            if not tickers or not values:
+                raise ValueError("Request with no ticker name and value.")
+            return tickers, values
+        else:
+            raise ValueError("Request with no ticker name and value.")
 
 
 # We also specify the template_name for the results list view – this ensures that the results view and the detail view have a different appearance when rendered, even though they’re both a DetailView behind the scenes
