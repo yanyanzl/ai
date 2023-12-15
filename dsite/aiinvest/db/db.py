@@ -155,18 +155,25 @@ def _add_data_to_db(data_list=pd.DataFrame(), table_name=""):
 
                 query = "insert into "+ table_name + " ("
                 
-                ############################# to be continue
+                
                 for _ in data_list.columns:
-                     query = query + f"{_} , "
-                     print(_)
+                     query = query + f"{_} ,"
                 #  (asset_name,asset_data_date,asset_close_price,asset_open_price,asset_high_price,asset_low_price,asset_volume,asset_id) values ('"+asset_name+"','"
-                print(query)
-                print(len(data_list.columns))
+                query = query.rstrip(query[-1])+") values ("
+
+                
 
                 for i in data_list.index:
-                     pass
-                #  queryi = query + f"{data_list.iloc[i]['Date']}" 
-
+                    # each row of the Data_list is a row to be inserted.
+                    queryi = query
+                    for _ in data_list.columns:
+                        queryi = queryi + f"'{data_list.iloc[i][_]}'," 
+                    
+                    queryi = queryi.rstrip(queryi[-1])+")"
+                    print(queryi)
+                    ############################# to be continue : avoid insert repeatidly
+                
+                print(len(data_list.columns))
                 #  + "'," + f"{his_price.iloc[i]['Close']}" + "," + f"{his_price.iloc[i]['Open']}" + "," + f"{his_price.iloc[i]['High']}" + "," + f"{his_price.iloc[i]['Low']}" + "," + f"{his_price.iloc[i]['Volume']}" + "," + f"{asset_id}" + ")"
 
                 # provide information for debug
@@ -215,7 +222,7 @@ def is_table_valid(conn, table_name=""):
 # development test. should be deleted when deploy.
 def test_tmp():
         asset_name="AAPL"
-        asset_name = pd.DataFrame({'asset_name':[asset_name]})
+        asset_name = pd.DataFrame({'asset_name':[asset_name], 'asset_id':[1]})
         print(asset_name)
         _add_data_to_db(asset_name, ASSETLIST_TABLE_NAME)
 
