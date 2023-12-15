@@ -14,3 +14,5 @@ DATABASES = {
         "PORT": "5432",
 
     }
+
+ASSETDATA_TABLE_NAME = "aiinvest_assetdata"

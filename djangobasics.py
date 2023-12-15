@@ -149,7 +149,14 @@
 
     # Migrate: run migrate to create those model tables in your database:
         # python manage.py migrate
-        # The migrate command takes all the migrations that haven’t been applied (Django tracks which ones are applied using a special table in your database called django_migrations) and runs them against your database - essentially, synchronizing the changes you made to your models with the schema in the database.
+        # The migrate command takes all the migrations that haven’t been applied (Django tracks which ones are applied using a special table in your database called django_migrations) and runs them against your database - essentially, synchronizing the changes you made to your models with the schema in the database
+
+    # How to reset migrations in Django
+        # Delete your migrations folder
+        # DELETE FROM django_migrations WHERE app = <your app name> . You could alternatively just truncate this table.
+        # python manage.py makemigrations
+        # python manage.py migrate --fake
+
 
 # Playing with the API
     # python manage.py shell
