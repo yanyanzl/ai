@@ -16,3 +16,4 @@ DATABASES = {
     }
 
 ASSETDATA_TABLE_NAME = "aiinvest_assetdata"
+ASSETLIST_TABLE_NAME = "aiinvest_assetlist"

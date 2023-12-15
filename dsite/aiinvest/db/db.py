@@ -3,8 +3,7 @@
 
 import psycopg2
 from db_settings import DATABASES as dbs
-from db_settings import DEBUG
-from db_settings import ASSETDATA_TABLE_NAME
+from db_settings import DEBUG, ASSETDATA_TABLE_NAME,ASSETLIST_TABLE_NAME
 import pandas as pd
 
 from finlib import format_excetpion_message
@@ -50,13 +49,13 @@ def get_asset_id(asset_name=""):
             cur.close()
 
             if DEBUG:
-                print(rows[0][0])
+                print(rows)
             
             if len(rows) == 1:
                 asset_id = rows[0][0]
             # if the asset doesn't exist in the database. insert it into it
             elif len(rows) == 0 and Asset(asset_name).is_valid():
-                 asset_id = _add_asset_to_list(conn, asset_name)
+                 asset_id = _add_asset_to_list(asset_name, ASSETLIST_TABLE_NAME)
             else:
                   conn.close()
                   raise ValueError(f"there is {len(rows)} asset in the db for asset_name: {asset_name}. or the asset_name may be an invalid ticker")
@@ -68,31 +67,24 @@ def get_asset_id(asset_name=""):
             format_excetpion_message(ex)
 
 # add the asset_name to the asset list table. return the id for the asset.
-def _add_asset_to_list(conn, asset_name=""):
+def _add_asset_to_list(asset_name="", table_name=""):
         try:
             # check the args are correct type
             if  isinstance(asset_name, str):
                 # check the list is not empty
-
-                    # provide information for debug
+                asset_name = pd.DataFrame({'asset_name':[asset_name]})
+                
+                # provide information for debug
                 if DEBUG:
-                    print("asset_name is", asset_name)
-
-                query = "insert into aiinvest_assetdata (asset_name,asset_data_date,asset_close_price,asset_open_price,asset_high_price,asset_low_price,asset_volume,asset_id) values ('tsla', '2023-12-14 00:00:00','239.2899932861328','239.2899932861328','239.2899932861328','239.2899932861328',160569000,1)"
-            
-                cur = conn.cursor()
-            
-                cur.execute()
-
-                conn.commit()
-                conn.close
-
+                    print(f" asset_name is {asset_name} and table name is {table_name} in _add_asset_to_list",  )
+                
+                _add_data_to_db(asset_name, table_name)
+ 
             # type of the args data inputs are not correct, 
             else:
                 raise TypeError(
                     f"string expected for asset name, got'{type(asset_name).__name__}'"
                 )
-
         except Exception as ex:
             format_excetpion_message(ex)
 
@@ -110,10 +102,6 @@ def _build_asset_data(asset_name="", years=0, table_name=ASSETDATA_TABLE_NAME):
                 raise ValueError (f"Asset data is not found for Asset name : {asset_name}")
             
             asset_id = get_asset_id(asset_name)
-            if asset_id >= 0:
-                 pass
-            else:
-                 _add_asset_to_list(asset_name)
 
             his_price = asset.fetch_his_price(period=years).reset_index()
 
@@ -153,7 +141,8 @@ def _build_asset_data(asset_name="", years=0, table_name=ASSETDATA_TABLE_NAME):
 
 
 # add data to the specified table in the current connected database
-def _add_assetdata_to_db(data_list=pd.DataFrame()):
+# the column names in data_list should be the same as the table's column names 
+def _add_data_to_db(data_list=pd.DataFrame(), table_name=""):
     
     try:
         # check the args are correct type
@@ -164,10 +153,21 @@ def _add_assetdata_to_db(data_list=pd.DataFrame()):
 
                 cur = conn.cursor()
 
-                query = "insert into aiinvest_assetdata (asset_name,asset_data_date,asset_close_price,asset_open_price,asset_high_price,asset_low_price,asset_volume,asset_id) values ('"+asset_name+"','"
+                query = "insert into "+ table_name + " ("
+                
+                ############################# to be continue
+                for _ in data_list.columns:
+                     query = query + f"{_} , "
+                     print(_)
+                #  (asset_name,asset_data_date,asset_close_price,asset_open_price,asset_high_price,asset_low_price,asset_volume,asset_id) values ('"+asset_name+"','"
+                print(query)
+                print(len(data_list.columns))
 
-                for i in his_price.index:
-                 queryi = query + f"{his_price.iloc[i]['Date']}" + "'," + f"{his_price.iloc[i]['Close']}" + "," + f"{his_price.iloc[i]['Open']}" + "," + f"{his_price.iloc[i]['High']}" + "," + f"{his_price.iloc[i]['Low']}" + "," + f"{his_price.iloc[i]['Volume']}" + "," + f"{asset_id}" + ")"
+                for i in data_list.index:
+                     pass
+                #  queryi = query + f"{data_list.iloc[i]['Date']}" 
+
+                #  + "'," + f"{his_price.iloc[i]['Close']}" + "," + f"{his_price.iloc[i]['Open']}" + "," + f"{his_price.iloc[i]['High']}" + "," + f"{his_price.iloc[i]['Low']}" + "," + f"{his_price.iloc[i]['Volume']}" + "," + f"{asset_id}" + ")"
 
                 # provide information for debug
                 if DEBUG:
@@ -208,64 +208,68 @@ def is_table_valid(conn, table_name=""):
              format_excetpion_message(ex)
         return exist
 
-_build_asset_data("TSLA", 0)
+# _build_asset_data("TSLA", 0)
 
 
 # ##################
 # development test. should be deleted when deploy.
 def test_tmp():
-        
-        conn = _get_conn()
-        cur = conn.cursor()
+        asset_name="AAPL"
+        asset_name = pd.DataFrame({'asset_name':[asset_name]})
+        print(asset_name)
+        _add_data_to_db(asset_name, ASSETLIST_TABLE_NAME)
 
-        cur.execute("SELECT * from aiinvest_assetlist")
+''' 
+conn = _get_conn()
+cur = conn.cursor()
 
-        rows = cur.fetchall()
+cur.execute("SELECT * from aiinvest_assetlist")
 
-        for row in rows:
-            print(row)
+rows = cur.fetchall()
 
+for row in rows:
+    print(row)
+# cur.execute("SELECT * from aiinvest_assetdata")
+# rows = cur.fetchall()
 
-        # cur.execute("SELECT * from aiinvest_assetdata")
-        # rows = cur.fetchall()
-
-        # for row in rows:
-        #     print(row)
-
-
-        # this will get all the table's information .
-        # cur.execute("""SELECT *
-        # FROM INFORMATION_SCHEMA.TABLES
-        # WHERE TABLE_TYPE = 'BASE TABLE' and TABLE_SCHEMA = 'public'""")
-        # rows = cur.fetchall()
-
-        # for row in rows:
-        #     print(row)
+# for row in rows:
+#     print(row)
 
 
-        # this will get all the table's columns' information .
-        # cur.execute("""SELECT * FROM information_schema.columns
-        # WHERE table_name = 'aiinvest_assetdata'""")
+# this will get all the table's information .
+# cur.execute("""SELECT *
+# FROM INFORMATION_SCHEMA.TABLES
+# WHERE TABLE_TYPE = 'BASE TABLE' and TABLE_SCHEMA = 'public'""")
+# rows = cur.fetchall()
 
-        table_name = "aiinvest_assetdata"
-        query = "SELECT column_name FROM information_schema.columns WHERE table_name ='"+table_name+"'"
+# for row in rows:
+#     print(row)
 
-        query1 = "SELECT EXISTS (SELECT FROM information_schema.tables" + " WHERE table_name = '" + table_name + "');"
 
-        # this will get all the column_name from the table .
-        cur.execute(query1)
-        rows = cur.fetchall()
+# this will get all the table's columns' information .
+# cur.execute("""SELECT * FROM information_schema.columns
+# WHERE table_name = 'aiinvest_assetdata'""")
 
-        for row in rows:
-            print(row)
+table_name = "aiinvest_assetdata"
+query = "SELECT column_name FROM information_schema.columns WHERE table_name ='"+table_name+"'"
 
-        print(rows)
-        # Make the changes to the database persistent
-        conn.commit()
+query1 = "SELECT EXISTS (SELECT FROM information_schema.tables" + " WHERE table_name = '" + table_name + "');"
 
-        
-        cur.close()
+# this will get all the column_name from the table .
+cur.execute(query1)
+rows = cur.fetchall()
 
-        conn.close()
+for row in rows:
+    print(row)
 
-# test_tmp()
+print(rows)
+# Make the changes to the database persistent
+conn.commit()
+
+
+cur.close()
+
+conn.close()
+'''
+
+test_tmp()
