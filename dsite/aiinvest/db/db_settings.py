@@ -8,9 +8,9 @@ DATABASES = {
     
         "ENGINE": "django.db.backends.postgresql_psycopg2",
         "NAME": "ai1",
-        "USER": "postgres",
+        "USER": "aiapp",
         "PASSWORD": "080802",
-        "HOST": "localhost",
+        "HOST": "192.168.1.244",
         "PORT": "5432",
 
     }
