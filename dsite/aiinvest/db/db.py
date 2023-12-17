@@ -101,9 +101,10 @@ def _build_asset_data(asset_name="", years=0, table_name=ASSETDATA_TABLE_NAME):
             if not asset.is_valid():
                 raise ValueError (f"Asset data is not found for Asset name : {asset_name}")
             
-            asset_id = get_asset_id(asset_name)
+            # asset_id = get_asset_id(asset_name)
+            asset_id = 1
 
-            his_price = asset.fetch_his_price(period=years).reset_index()
+            his_price = asset.fetch_his_price(period=years)
 
             his_price['name'] = asset_name
             his_price['asset_id'] = asset_id
@@ -115,8 +116,9 @@ def _build_asset_data(asset_name="", years=0, table_name=ASSETDATA_TABLE_NAME):
             #                           'Close': 'asset_close_price',
             #                           'Volume': 'asset_volume'
             #                           })
-
+            his_price = his_price.set_index(['name'],append=True)
             his_price.columns = map(str.lower, his_price.columns)
+            print(his_price.index)
             print(his_price)
             
 
@@ -248,7 +250,7 @@ def is_table_valid(conn, table_name=""):
              format_excetpion_message(ex)
         return exist
 
-# _build_asset_data("TSLA", 0)
+_build_asset_data("TSLA", 0)
 
 
 # ##################
@@ -257,12 +259,15 @@ def test_tmp():
         table_name = ASSETDATA_TABLE_NAME
         asset_name="AAPL"
 
-        data_list = pd.DataFrame({'asset_name':[asset_name], 'asset_id':[1], 'date':['2023-12-12']}).reset_index()
+        data_list = pd.DataFrame({'asset_name':[asset_name], 'asset_id':[1], 'date':['2023-12-12']})
+        print(data_list)
         # asset_name = asset_name.set_index(['asset_name', 'date'])
         print(data_list.index)
         if data_list.index.names[0] == None:
              print("@@@@@@@@@@@@@@")
         
+        print("@@@@@@@@@@@@@@data.columns", data_list.columns)
+
         data_list = data_list.set_index(['asset_name','date'])
         for _ in data_list.index.names:
             print(f"Asset index are:" , _)
@@ -273,7 +278,10 @@ def test_tmp():
         if data_list.index.names[0] == None:
             start_column = 1
 
-        for _ in data_list.columns[start_column:]:
+        
+        all_columns = list(filter(None, data_list.index.names + data_list.columns.to_list()))
+        print("all_columns", all_columns)
+        for _ in all_columns:
                 query = query + f"{_} ,"
 
         query = query.rstrip(query[-1])+") SELECT "
