@@ -141,7 +141,11 @@ def _build_asset_data(asset_name="", years=0, table_name=ASSETDATA_TABLE_NAME):
 
 
 # add data to the specified table in the current connected database
-# the column names in data_list should be the same as the table's column names 
+# the column names in data_list should be the same as the table's column names
+# to avoid duplicate data to be added to the database. 
+# it is important to set the unique identifiers to be the index of the data_list.
+# example : data_list.set_index(['asset_name', 'date'])
+# if index is not assigned to the unique identifier. set the second column (column[1]) as the identifier
 def _add_data_to_db(data_list=pd.DataFrame(), table_name=""):
     
     try:
@@ -153,32 +157,60 @@ def _add_data_to_db(data_list=pd.DataFrame(), table_name=""):
 
                 cur = conn.cursor()
 
-                query = "insert into "+ table_name + " ("
-                
-                
-                for _ in data_list.columns:
-                     query = query + f"{_} ,"
-                #  (asset_name,asset_data_date,asset_close_price,asset_open_price,asset_high_price,asset_low_price,asset_volume,asset_id) values ('"+asset_name+"','"
-                query = query.rstrip(query[-1])+") values ("
-
-                
-
-                for i in data_list.index:
-                    # each row of the Data_list is a row to be inserted.
-                    queryi = query
-                    for _ in data_list.columns:
-                        queryi = queryi + f"'{data_list.iloc[i][_]}'," 
-                    
-                    queryi = queryi.rstrip(queryi[-1])+")"
-                    print(queryi)
-                    ############################# to be continue : avoid insert repeatidly
-                
-                print(len(data_list.columns))
-                #  + "'," + f"{his_price.iloc[i]['Close']}" + "," + f"{his_price.iloc[i]['Open']}" + "," + f"{his_price.iloc[i]['High']}" + "," + f"{his_price.iloc[i]['Low']}" + "," + f"{his_price.iloc[i]['Volume']}" + "," + f"{asset_id}" + ")"
-
                 # provide information for debug
                 if DEBUG:
-                    print("data_list is", data_list)
+                    print("data_list is\n", data_list)
+                    print("£££££££££££££££ ",data_list.columns)
+                    print("data_list.index.names--------\n", data_list.index.names)
+
+                #  construct the query for add rows to the table
+                query = "INSERT INTO "+ table_name + " ("
+                
+                start_column = 0
+                if data_list.index.names[0] == None:
+                    start_column = 1
+
+                for _ in data_list.columns[start_column:]:
+                     query = query + f"{_} ,"
+
+                query = query.rstrip(query[-1])+") SELECT "
+
+                i = 0
+                while i < len(data_list.index):
+                    # each row of the Data_list is a row to be inserted.
+                    queryi = query
+                    for _ in data_list.columns[start_column:]:
+                        print(" $$$$$$$$$$$ _ is \n  ", _)
+                        queryi = queryi + f"'{data_list.iloc[i][_]}'," 
+                    
+                    queryi = queryi.rstrip(queryi[-1]) + " WHERE NOT EXISTS (SELECT * FROM " + table_name + " WHERE "
+                    
+                    # if index is not assigned to the unique identifier. set the second column (column[1]) as the identifier
+                    if data_list.index.names[0] == None:
+                        queryi = queryi + data_list.columns[1] + f" = '{data_list.iloc[i][data_list.columns[1]]}' and "
+                    # if the index is provided . use all the indexes as the unique identifier.
+                    else:
+                         for _ in data_list.index.names:
+                            # queryi = queryi + _ + f" = '{data_list.iloc[i][_]}' and"
+                            print("********** _ is ", _)
+                            # print(data_list.iloc[i])
+                            print("data_list.index[i] is ", data_list.index[i])
+                    
+                    queryi = queryi.rstrip().rstrip("and") + ");"
+                    i += 1
+                    print(queryi)
+                
+                # print("column 0 ---", data_list.columns[0])
+                # print("Index 0 ---", data_list.index[0])
+                    ############################# to be continue : avoid insert repeatidly
+                
+                # construct the unique identifiers of the data_list and avoid duplicate data to be added
+                # if index is not assigned to the unique identifier. set the second column (column[1]) as the identifier
+                # any data has the same identifier in the database will not be added.
+                
+                
+                for _ in data_list.index.names:
+                        print(f"Asset index {_} are:" , _)
 
 
                 conn.commit()
@@ -222,8 +254,15 @@ def is_table_valid(conn, table_name=""):
 # development test. should be deleted when deploy.
 def test_tmp():
         asset_name="AAPL"
-        asset_name = pd.DataFrame({'asset_name':[asset_name], 'asset_id':[1]})
-        print(asset_name)
+        asset_name = pd.DataFrame({'asset_name':[asset_name], 'asset_id':[1], 'date':['2023-12-12']}).reset_index()
+        # asset_name = asset_name.set_index(['asset_name', 'date'])
+        print(asset_name.index)
+        if asset_name.index.names[0] == None:
+             print("@@@@@@@@@@@@@@")
+        
+        asset_name = asset_name.set_index(['asset_name','date'])
+        for _ in asset_name.index.names:
+            print(f"Asset index are:" , _)
         _add_data_to_db(asset_name, ASSETLIST_TABLE_NAME)
 
 ''' 
