@@ -194,7 +194,8 @@ def _add_data_to_db(data_list=pd.DataFrame(), table_name=""):
                             # queryi = queryi + _ + f" = '{data_list.iloc[i][_]}' and"
                             print("********** _ is ", _)
                             # print(data_list.iloc[i])
-                            print("data_list.index[i] is ", data_list.index[i])
+                            print("data_list.index[i] is ", data_list.index.get_level_values(_))
+                            print("data_list.index.value is ", data_list.index.get_value(_))
                     
                     queryi = queryi.rstrip().rstrip("and") + ");"
                     i += 1
