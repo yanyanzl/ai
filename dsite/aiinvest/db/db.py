@@ -5,6 +5,7 @@ import psycopg2
 from db_settings import DATABASES as dbs
 from db_settings import DEBUG, ASSETDATA_TABLE_NAME,ASSETLIST_TABLE_NAME
 import pandas as pd
+import os
 
 from finlib import format_excetpion_message
 from finlib import Asset
@@ -14,7 +15,9 @@ import pprint
 DEFAULT_DATABASE = dbs['NAME']
 DEFAULT_USER = dbs['USER']
 DEFAULT_HOST= dbs['HOST']
-DEFAULT_PASSWORD = dbs['PASSWORD']
+
+DEFAULT_PASSWORD = os.environ.get("DB_PASS")
+print("DB_PASS is  ", DEFAULT_PASSWORD)
 DEFAULT_PORT = dbs['PORT']
 
 # get a connection to database. inner function. 
@@ -195,7 +198,7 @@ def _add_data_to_db(data_list=pd.DataFrame(), table_name=""):
                             print("********** _ is ", _)
                             # print(data_list.iloc[i])
                             print("data_list.index[i] is ", data_list.index.get_level_values(_))
-                            print("data_list.index.value is ", data_list.index.get_value(_))
+                            # print("data_list.index.value is ", data_list.index.get_value(_))
                     
                     queryi = queryi.rstrip().rstrip("and") + ");"
                     i += 1
