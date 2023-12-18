@@ -104,9 +104,10 @@ def _build_asset_data(asset_name="", years=0, table_name=ASSETDATA_TABLE_NAME):
             if not asset.is_valid():
                 raise ValueError (f"Asset data is not found for Asset name : {asset_name}")
             
-            asset_id = get_asset_id(asset_name)
+            # asset_id = get_asset_id(asset_name)
+            asset_id = 1
 
-            his_price = asset.fetch_his_price(period=years).reset_index()
+            his_price = asset.fetch_his_price(period=years)
 
             his_price['name'] = asset_name
             his_price['asset_id'] = asset_id
@@ -118,8 +119,9 @@ def _build_asset_data(asset_name="", years=0, table_name=ASSETDATA_TABLE_NAME):
             #                           'Close': 'asset_close_price',
             #                           'Volume': 'asset_volume'
             #                           })
-
+            his_price = his_price.set_index(['name'],append=True)
             his_price.columns = map(str.lower, his_price.columns)
+            print(his_price.index)
             print(his_price)
             
 
@@ -251,23 +253,71 @@ def is_table_valid(conn, table_name=""):
              format_excetpion_message(ex)
         return exist
 
-# _build_asset_data("TSLA", 0)
+_build_asset_data("TSLA", 0)
 
 
 # ##################
 # development test. should be deleted when deploy.
 def test_tmp():
+        table_name = ASSETDATA_TABLE_NAME
         asset_name="AAPL"
-        asset_name = pd.DataFrame({'asset_name':[asset_name], 'asset_id':[1], 'date':['2023-12-12']}).reset_index()
+
+        data_list = pd.DataFrame({'asset_name':[asset_name], 'asset_id':[1], 'date':['2023-12-12']})
+        print(data_list)
         # asset_name = asset_name.set_index(['asset_name', 'date'])
-        print(asset_name.index)
-        if asset_name.index.names[0] == None:
+        print(data_list.index)
+        if data_list.index.names[0] == None:
              print("@@@@@@@@@@@@@@")
         
-        asset_name = asset_name.set_index(['asset_name','date'])
-        for _ in asset_name.index.names:
+        print("@@@@@@@@@@@@@@data.columns", data_list.columns)
+
+        data_list = data_list.set_index(['asset_name','date'])
+        for _ in data_list.index.names:
             print(f"Asset index are:" , _)
-        _add_data_to_db(asset_name, ASSETLIST_TABLE_NAME)
+
+        query = "INSERT INTO "+ table_name + " ("
+        
+        start_column = 0
+        if data_list.index.names[0] == None:
+            start_column = 1
+
+        
+        all_columns = list(filter(None, data_list.index.names + data_list.columns.to_list()))
+        print("all_columns", all_columns)
+        for _ in all_columns:
+                query = query + f"{_} ,"
+
+        query = query.rstrip(query[-1])+") SELECT "
+
+        i = 0
+        while i < len(data_list.index):
+            # each row of the Data_list is a row to be inserted.
+            queryi = query
+            for _ in data_list.columns[start_column:]:
+                print(" $$$$$$$$$$$ _ is \n  ", _)
+                queryi = queryi + f"'{data_list.iloc[i][_]}'," 
+            
+            queryi = queryi.rstrip(queryi[-1]) + " WHERE NOT EXISTS (SELECT * FROM " + table_name + " WHERE "
+            
+            # if index is not assigned to the unique identifier. set the second column (column[1]) as the identifier
+            if data_list.index.names[0] == None:
+                queryi = queryi + data_list.columns[1] + f" = '{data_list.iloc[i][data_list.columns[1]]}' and "
+            # if the index is provided . use all the indexes as the unique identifier.
+            else:
+                    j = 0
+                    for _ in data_list.index.names:
+                        # queryi = queryi + _ + f" = '{data_list.iloc[i][_]}' and"
+                        print("********** _ is ", _)
+                        # print(data_list.iloc[i])
+                        print("data_list.index[i][j] is ", data_list.index[i][j])
+                        queryi = queryi + _ + " = '" + data_list.index[i][j] + "' and "
+                        j =+ 1
+                
+            queryi = queryi.rstrip().rstrip("and") + ");"
+            i += 1
+            print(queryi)
+   
+        # _add_data_to_db(asset_name, ASSETLIST_TABLE_NAME)
 
 ''' 
 conn = _get_conn()
