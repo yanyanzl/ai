@@ -44,26 +44,60 @@ def get_asset_price_data(asset_name=""):
 
 
 # private function: to get data for an condition in a table.
-# condition is a dictionary. example: {'asset_name': TSLA, 'Date': '2023-12-18 00:00:00'}
-def _get_data_from_db(columns = [], condition_dict={}, table_name=""):
+# columns are the names for the columns of the data to get. if empty, return all columns in the table.
+# condition is a dictionary. example: {'asset_name': TSLA, 'Date': '2023-12-18 00:00:00'}. if empty. 
+# no condition
+
+def _get_data_from_db(table_name="", columns = [], condition_dict={}):
         try:
+            conn = None
+            cur = None
+            if not table_name:
+                 raise ValueError(f"_get_data_from_da: parameter table_name is empty {table_name}")
+            data = pd.DataFrame()
+
             # construct SQL 
-            query = "SELECT id from aiinvest_assetlist where asset_name=\'" + asset_name +"\'"
+            query = "SELECT"
+            # if columns is empty. select all
+            if not columns:
+                 query = query + " * "
+            else:
+                for _ in columns:
+                     query = query + _ + " , "
+                query = query.rstrip().rstrip(",") 
+
+            query = query + " FROM " + table_name
+
+            # if no condition, query is completed.
+            if not condition_dict:
+                 query = query + ";"
+            # add all conditions to the query
+            else:
+                query = query + " WHERE "
+                for _ in condition_dict:
+                     query = query + _ + " = " + condition_dict[_] + " AND "
+                query = query.rstrip().rstrip("AND") + ";"
+
             conn = _get_conn()
             cur = conn.cursor()
 
+            rows = cur.execute(query)
+
             conn.commit()
+            cur.close()
+            conn.close()
+
+            return rows
 
         except (Exception, psycopg2.DatabaseError) as ex:
              format_excetpion_message(ex)
-
         finally:
             if cur is not None:
                  cur.close()
             if conn is not None:
                 conn.close()
 
-
+_get_data_from_db(table_name="aiinvest_assetlist")
 
 
 # public function
@@ -315,6 +349,7 @@ def is_table_valid(conn, table_name=""):
 
 
 # _build_asset_data("AAPL", 0)
+
 
 
 # ##################
