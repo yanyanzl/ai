@@ -5,8 +5,8 @@ import psycopg2
 from db_settings import DATABASES as dbs
 from db_settings import DEBUG, ASSETDATA_TABLE_NAME,ASSETLIST_TABLE_NAME
 import pandas as pd
-import os
 
+import os
 from finlib import format_excetpion_message
 from finlib import Asset
 import requests
@@ -45,9 +45,25 @@ def get_asset_price_data(asset_name=""):
 
 # private function: to get data for an condition in a table.
 # condition is a dictionary. example: {'asset_name': TSLA, 'Date': '2023-12-18 00:00:00'}
-def _get_data_from_db(condition_dict={}, table_name=""):
-     
-     pass
+def _get_data_from_db(columns = [], condition_dict={}, table_name=""):
+        try:
+            # construct SQL 
+            query = "SELECT id from aiinvest_assetlist where asset_name=\'" + asset_name +"\'"
+            conn = _get_conn()
+            cur = conn.cursor()
+
+            conn.commit()
+
+        except (Exception, psycopg2.DatabaseError) as ex:
+             format_excetpion_message(ex)
+
+        finally:
+            if cur is not None:
+                 cur.close()
+            if conn is not None:
+                conn.close()
+
+
 
 
 # public function
@@ -82,17 +98,17 @@ def get_asset_id(asset_name=""):
                     _add_asset_to_list(asset_name, ASSETLIST_TABLE_NAME)
                     # then continue the loop to get the ID
                 else:
-                    cur.close()
-                    conn.close()
                     raise ValueError(f"there is {len(rows)} asset in the db for asset_name: {asset_name}. or the asset_name may be an invalid ticker")
             
             conn.commit()
-            cur.close()           
-            conn.close()
             return asset_id
-        except Exception as ex:
-            conn.close()
-            format_excetpion_message(ex)
+        except (Exception, psycopg2.DatabaseError) as ex:
+             format_excetpion_message(ex)
+        finally:
+            if cur is not None:
+                 cur.close()
+            if conn is not None:
+                conn.close()
 
 # add the asset_name to the asset list table. return the id for the asset.
 def _add_asset_to_list(asset_name="", table_name=""):
@@ -253,7 +269,6 @@ def _add_data_to_db(data_list=pd.DataFrame(), table_name=""):
 
 
                 conn.commit()
-                conn.close
 
             # input list is empty
             else:
@@ -266,8 +281,14 @@ def _add_data_to_db(data_list=pd.DataFrame(), table_name=""):
                 f"got'{type(data_list).__name__}'"
             )
 
-    except Exception as ex:
-        format_excetpion_message(ex)
+    except (Exception, psycopg2.DatabaseError) as ex:
+            format_excetpion_message(ex)
+
+    finally:
+        if cur is not None:
+                cur.close()
+        if conn is not None:
+            conn.close()
 
 # check if the table exist in the current database. 
 def is_table_valid(conn, table_name=""):
@@ -281,14 +302,19 @@ def is_table_valid(conn, table_name=""):
             cur.execute("SELECT * from aiinvest_assetlist")
 
             exist = cur.fetchone()[0]
-            print(exist)
-            cur.close()
-        except Exception as ex:
+            conn.commit()
+            if DEBUG:
+                print("table", table_name, exist)
+            return exist
+        
+        except (Exception, psycopg2.DatabaseError) as ex:
              format_excetpion_message(ex)
-        return exist
+        finally:
+            if cur is not None:
+                 cur.close()
 
 
-_build_asset_data("AAPL", 0)
+# _build_asset_data("AAPL", 0)
 
 
 # ##################
