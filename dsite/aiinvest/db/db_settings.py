@@ -10,7 +10,7 @@ DATABASES = {
         "NAME": "ai1",
         "USER": "aiapp",
         "PASSWORD": "080802",
-        "HOST": "192.168.1.244",
+        "HOST": "localhost",
         "PORT": "5432",
 
     }
