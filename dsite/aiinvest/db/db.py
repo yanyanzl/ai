@@ -78,11 +78,16 @@ def _get_data_from_db(table_name="", columns = [], condition_dict={}):
                      query = query + _ + " = " + condition_dict[_] + " AND "
                 query = query.rstrip().rstrip("AND") + ";"
 
+            if DEBUG:
+                 print("_get_data_from_db: the query is : ", query)
+
             conn = _get_conn()
             cur = conn.cursor()
 
-            rows = cur.execute(query)
+            cur.execute(query)
 
+            rows = cur.fetchall()
+            
             conn.commit()
             cur.close()
             conn.close()
@@ -348,7 +353,7 @@ def is_table_valid(conn, table_name=""):
                  cur.close()
 
 
-# _build_asset_data("AAPL", 0)
+# _build_asset_data("TSLA", 0)
 
 
 
