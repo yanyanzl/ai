@@ -8,6 +8,7 @@ from ibapi.contract import Contract
 from ibapi.ticktype import TickTypeEnum
 
 from ibapi.order import *
+from pynput import keyboard
 
 import pandas
 import threading
@@ -85,9 +86,8 @@ class TestApp(TestWrapper, TestClient):
     # Receives the subscribed account’s portfolio. This function will receive only the portfolio of the subscribed account. After the initial callback to updatePortfolio, callbacks only occur for positions which have changed.
 
     def updatePortfolio(self, contract: Contract, position: Decimal, marketPrice: float, marketValue: float, averageCost: float, unrealizedPNL: float, realizedPNL: float, accountName: str):
-        # print("UpdatePortfolio.", "Symbol:", contract.symbol, "SecType:", contract.secType)
-        # print("UpdatePortfolio.", "Symbol:", contract.symbol, "SecType:", contract.secType, "Exchange:",contract.exchange, "Position:", position, "MarketPrice:", marketPrice,"MarketValue:", marketValue, "AverageCost:", averageCost, "UnrealizedPNL:", unrealizedPNL, "RealizedPNL:", realizedPNL, "AccountName:", accountName)
-        # ########  need to save those portfolio positions information to a dataset.
+         # print("UpdatePortfolio.", "Symbol:", contract.symbol, "SecType:", contract.secType, "Exchange:",contract.exchange, "Position:", position, "MarketPrice:", marketPrice,"MarketValue:", marketValue, "AverageCost:", averageCost, "UnrealizedPNL:", unrealizedPNL, "RealizedPNL:", realizedPNL, "AccountName:", accountName)
+        #   to save those portfolio positions information to a dataset.
         self.portfolio.append([contract.symbol,contract.secType, contract.exchange,position,marketPrice,marketValue,averageCost, unrealizedPNL,realizedPNL])
 
 
@@ -101,10 +101,9 @@ class TestApp(TestWrapper, TestClient):
 
     # after reqMktData, this function is used to receive the data.
     def tickPrice(self, reqId, tickType, price, attrib):
-            if tickType == 2 and reqId == 1:
-                print('The current ask price is: ', price)
-            else:
-                print("tickType is :", tickType, " and the price is ", price, "the attrib is ", attrib)
+            # for i in range(91):
+            #     print(TickTypeEnum.to_str(i), i)
+            print("reqID is ", reqId, "tickType is :", TickTypeEnum.to_str[tickType], " and the price is ", price)
             self.mkt_price = price
 
     # after reqHistoricalData, this function is used to receive the data.
@@ -165,6 +164,23 @@ def buy_order(price="",quantity:int=10):
     else:
          raise ValueError("No price target given in buy_order!")
 
+# get the histroy data for a contract
+def get_his_data(app=TestApp(),contract=Contract()):
+    #Request historical candles
+    app.reqHistoricalData(1, contract, '', '5 D', '1 hour', 'BID', 0, 2, False, [])
+
+    #Sleep interval to allow time for incoming price data. 
+    # without this sleep. the data will be empty
+    time.sleep(2) 
+    # transform data to Dataframe format. 
+    df = pandas.DataFrame(app.data, columns=['DateTime', 'Close'])
+    df['DateTime'] = pandas.to_datetime(df['DateTime'],unit="s")
+
+    # 20 SMA of the close price.
+    df['20SMA'] = df['Close'].rolling(20).mean()
+    # print(df.tail(10))
+
+
 
 def main():
 
@@ -174,9 +190,9 @@ def main():
     app = TestApp()
 
     # app.connect('127.0.0.1', 7497, 155)
-    app.connect('192.168.1.146', 7497, 176)
+    app.connect('192.168.1.146', 7497, 199)
     
-    # print(app.isConnected())
+    print(app.isConnected())
 
     app.nextorderId = None
     
@@ -206,9 +222,6 @@ def main():
 
     app.reqAccountUpdates(True, app.account)
     
-    time.sleep(2) 
-    # Once the subscription to account updates is no longer needed, it can be cancelled by invoking the IBApi.EClient.reqAccountUpdates method while specifying the susbcription flag to be False.
-    app.reqAccountUpdates(False, app.account)
 
     #Create contract object
     apple_contract = stock_contract('AAPL')
@@ -218,38 +231,6 @@ def main():
     app.reqMktData(1, apple_contract, '', True, False, [])
     time.sleep(2)
 
-    ############ placing order started here
-    order = buy_order(str(app.mkt_price),10)
-    #Place order
-    app.placeOrder(app.nextorderId, apple_contract, order)
-    #app.nextorderId += 1
-
-    time.sleep(3)
-
-    #Cancel order 
-    print('cancelling order')
-    app.cancelOrder(app.nextorderId,"")
-    ############# creating order finished
-
-    # from ibapi.ticktype import TickTypeEnum
-
-    # for i in range(91):
-    #     print(TickTypeEnum.to_str(i), i)
-
-    #Request historical candles
-    app.reqHistoricalData(1, apple_contract, '', '5 D', '1 hour', 'BID', 0, 2, False, [])
-
-    #Sleep interval to allow time for incoming price data. 
-    # without this sleep. the data will be empty
-    time.sleep(5) 
-
-    # transform data to Dataframe format. 
-    df = pandas.DataFrame(app.data, columns=['DateTime', 'Close'])
-    df['DateTime'] = pandas.to_datetime(df['DateTime'],unit="s")
-
-    # 20 SMA of the close price.
-    df['20SMA'] = df['Close'].rolling(20).mean()
-    # print(df.tail(10))
 
     # transform data to Dataframe format. 
     app.portfolio = pandas.DataFrame(app.portfolio, columns=['symbol', 'sectype', 'exchange', 'position', 'marketprice', 'marketvalue', 'averagecost', 'unrealizedpnl', 'realizedpnl'])
@@ -257,9 +238,52 @@ def main():
     print("app.portfolio\n", app.portfolio)
     print("app.account_info\n", app.account_info)
 
+    ################ keyboard input monitoring part start
+    # monitoring the keyboard and make it available to control the order
+    def on_press(key):
+        try:
+            # print('alphanumeric key {0} pressed'.format(key.char))
+            if key == keyboard.Key.f9:
+                     ############ placing order started here
+                    order = buy_order(str(app.mkt_price),10)
+                    #Place order
+                    app.placeOrder(app.nextorderId, apple_contract, order)
+                    #app.nextorderId += 1
 
-    app.disconnect()
+                    time.sleep(3)
 
+                    #Cancel order 
+                    print('cancelling order')
+                    app.cancelOrder(app.nextorderId,"")
+                    ############# creating order finished
+        except AttributeError:
+            print('special key {0} pressed'.format(
+                key))
+
+    def on_release(key):
+        print('{0} released'.format(
+            key))
+        if key == keyboard.Key.esc:
+            # Stop listener
+            print("Stopping Listener...")
+
+            # Once the subscription to account updates is no longer needed, it can be cancelled by invoking the IBApi.EClient.reqAccountUpdates method while specifying the susbcription flag to be False.
+            app.reqAccountUpdates(False, app.account)
+            time.sleep(1) 
+            app.disconnect()
+            return False
+ 
+    # in a non-blocking fashion:
+    # A keyboard listener is a threading.Thread, and all callbacks will be invoked from the thread.
+    # Call pynput.keyboard.Listener.stop from anywhere, raise StopException or return False from a callback to stop the listener.
+    # The key parameter passed to callbacks is a pynput.keyboard.Key, for special keys, a pynput.keyboard.KeyCode for normal alphanumeric keys, or just None for unknown keys.
+    # When using the non-blocking version above, the current thread will continue executing. This might be necessary when integrating with other GUI frameworks that incorporate a main-loop, but when run from a script, this will cause the program to terminate immediately.
+    listener = keyboard.Listener(
+    on_press=on_press,
+    on_release=on_release)
+    listener.start()
+    # app.disconnect()
+    ################ keyboard input monitoring part end
     
 if __name__ == "__main__":
     main()
