@@ -22,9 +22,9 @@ class TestWrapper(EWrapper):
         print("This is test")
 
     # The API treats many items as errors even though they are not.
-    def error(self, reqId, errorCode, errorString):
+    def error(self, reqId, errorCode, errorMsg="", advancedOrderRejectJson=""):
          if errorCode == 202:
-            print('order canceled - Reason ', errorString) 
+            print('order canceled - Reason ', errorMsg) 
 
 class TestClient(EClient):
      def __init__(self, wrapper):
@@ -33,19 +33,33 @@ class TestClient(EClient):
          
 from decimal import *
 
+ACCOUNT_COLUMNS=['key', 'value', 'currency']
+
 class TestApp(TestWrapper, TestClient):
   
     def __init__(self):
         TestWrapper.__init__(self)
         TestClient.__init__(self, wrapper=self)
         self.data = [] #Initialize variable to store data
-        self.account = ""
+        self.account = "" 
+        #  account_info;` columns: key, value, currency`
+        self.account_info = pandas.DataFrame()
         self.mkt_price = ""
+        self.portfolio = []
 
     # overide the account Summary method. to get all the account summary information
     def accountSummary(self, reqId: int, account: str, tag: str, value: str,currency: str):
-        print("AccountSummary. ReqId:", reqId, "Account:", account,"Tag: ", tag, "Value:", value, "Currency:", currency)
+        # print("AccountSummary. ReqId:", reqId, "Account:", account,"Tag: ", tag, "Value:", value, "Currency:", currency)
         self.account = account
+        if tag != None and tag != "":
+             self.account_info = pandas.concat([self.account_info,pandas.DataFrame([[tag, value, currency]],
+                   columns=ACCOUNT_COLUMNS)])
+            #  if not self.account_info.empty:
+            #       self.account_info = pandas.concat([self.account_info,pandas.DataFrame([[tag, value, currency]],
+            #        columns=ACCOUNT_COLUMNS)])
+            #  else: 
+            #       self.account_info = pandas.DataFrame([[tag, value, currency]],
+            #        columns=ACCOUNT_COLUMNS)
 
     # overide the account Summary end method. 
     # Notifies when all the accounts’ information has ben received.
@@ -57,14 +71,24 @@ class TestApp(TestWrapper, TestClient):
         
     # Receives the subscribed account’s information. Only one account can be subscribed at a time. After the initial callback to updateAccountValue, callbacks only occur for values which have changed. This occurs at the time of a position change, or every 3 minutes at most. This frequency cannot be adjusted.
     def updateAccountValue(self, key: str, val: str, currency: str,accountName: str):
-        print("UpdateAccountValue. Key:", key, "Value:", val, "Currency:", currency, "AccountName:", accountName)
+        # print("UpdateAccountValue. Key:", key, "Value:", val, "Currency:", currency, "AccountName:", accountName)
+        if key != None and key != "":
+            self.account_info = pandas.concat([self.account_info,pandas.DataFrame([[key, val, currency]],
+                   columns=ACCOUNT_COLUMNS)])
+            # if not self.account_info.empty:
+            #       self.account_info = pandas.concat([self.account_info,pandas.DataFrame([[key, val, currency]],
+            #        columns=ACCOUNT_COLUMNS)])
+            # else: 
+            #       self.account_info = pandas.DataFrame([[key, val, currency]],
+            #        columns=ACCOUNT_COLUMNS)
 
     # Receives the subscribed account’s portfolio. This function will receive only the portfolio of the subscribed account. After the initial callback to updatePortfolio, callbacks only occur for positions which have changed.
 
     def updatePortfolio(self, contract: Contract, position: Decimal, marketPrice: float, marketValue: float, averageCost: float, unrealizedPNL: float, realizedPNL: float, accountName: str):
         # print("UpdatePortfolio.", "Symbol:", contract.symbol, "SecType:", contract.secType)
-        print("UpdatePortfolio.", "Symbol:", contract.symbol, "SecType:", contract.secType, "Exchange:",contract.exchange, "Position:", position, "MarketPrice:", marketPrice,"MarketValue:", marketValue, "AverageCost:", averageCost, "UnrealizedPNL:", unrealizedPNL, "RealizedPNL:", realizedPNL, "AccountName:", accountName)
+        # print("UpdatePortfolio.", "Symbol:", contract.symbol, "SecType:", contract.secType, "Exchange:",contract.exchange, "Position:", position, "MarketPrice:", marketPrice,"MarketValue:", marketValue, "AverageCost:", averageCost, "UnrealizedPNL:", unrealizedPNL, "RealizedPNL:", realizedPNL, "AccountName:", accountName)
         # ########  need to save those portfolio positions information to a dataset.
+        self.portfolio.append([contract.symbol,contract.secType, contract.exchange,position,marketPrice,marketValue,averageCost, unrealizedPNL,realizedPNL])
 
 
     # Receives the last time on which the account was updated.
@@ -85,7 +109,7 @@ class TestApp(TestWrapper, TestClient):
 
     # after reqHistoricalData, this function is used to receive the data.
     def historicalData(self, reqId, bar):
-            print(f'Time: {bar.date} Close: {bar.close}')
+            # print(f'Time: {bar.date} Close: {bar.close}')
             self.data.append([bar.date, bar.close])
 
     # To fire an order, we simply create a contract object with the asset details and an order object with the order details. Then call app.placeOrder to submit the order.
@@ -97,11 +121,11 @@ class TestApp(TestWrapper, TestClient):
 
     # order status, will be called after place/cancel order
     def orderStatus(self, orderId, status, filled, remaining, avgFullPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
-             print('orderStatus - orderid:', orderId, 'status:', status, 'filled', filled, 'remaining', remaining, 'lastFillPrice', lastFillPrice)
+             print('orderStatus - orderid:', orderId, 'status:', status, 'filled', filled, 'remaining', remaining, 'lastFillPrice', lastFillPrice, 'avgFullPrice:', avgFullPrice, 'mktCapPrice:', mktCapPrice)
 
     # will be called after place order
     def openOrder(self, orderId, contract, order, orderState):
-        print('openOrder id:', orderId, contract.symbol, contract.secType, '@', contract.exchange, ':', order.action, order.orderType, order.totalQuantity, orderState.status)
+        print('openOrder id:', orderId, contract.symbol, contract.secType, '@', contract.exchange, ':', order.action, order.orderType, order.totalQuantity, " at price ", order.lmtPrice, orderState.status)
 
     
     def execDetails(self, reqId, contract, execution):
@@ -178,7 +202,7 @@ def main():
     time.sleep(2) 
 
     # The IBApi.EClient.reqAccountUpdates function creates a subscription to the TWS through which account and portfolio information is delivered. This information is the exact same as the one displayed within the TWS’ Account Window. Just as with the TWS’ Account Window, unless there is a position change this information is updated at a fixed interval of three minutes.
-    print("app.account", app.account)
+    # print("app.account", app.account)
 
     app.reqAccountUpdates(True, app.account)
     
@@ -204,10 +228,8 @@ def main():
 
     #Cancel order 
     print('cancelling order')
-
     app.cancelOrder(app.nextorderId,"")
     ############# creating order finished
-
 
     # from ibapi.ticktype import TickTypeEnum
 
@@ -224,9 +246,16 @@ def main():
     # transform data to Dataframe format. 
     df = pandas.DataFrame(app.data, columns=['DateTime', 'Close'])
     df['DateTime'] = pandas.to_datetime(df['DateTime'],unit="s")
+
     # 20 SMA of the close price.
     df['20SMA'] = df['Close'].rolling(20).mean()
-    print(df.tail(10))
+    # print(df.tail(10))
+
+    # transform data to Dataframe format. 
+    app.portfolio = pandas.DataFrame(app.portfolio, columns=['symbol', 'sectype', 'exchange', 'position', 'marketprice', 'marketvalue', 'averagecost', 'unrealizedpnl', 'realizedpnl'])
+
+    print("app.portfolio\n", app.portfolio)
+    print("app.account_info\n", app.account_info)
 
 
     app.disconnect()
