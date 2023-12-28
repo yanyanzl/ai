@@ -9,6 +9,7 @@ from ibapi.ticktype import TickTypeEnum
 
 from ibapi.order import *
 from pynput import keyboard
+from pynput.keyboard import KeyCode
 
 import pandas
 import threading
@@ -17,10 +18,37 @@ import os
 
 # print(os.environ)
 # print(os.get_exec_path())
+         
+from decimal import *
+
+PLACE_BUY_ORDER = keyboard.Key.f9
+PLACE_SELL_ORDER = keyboard.Key.f12
+
+CANCEL_LAST_ORDER = KeyCode(char="c")
+
+
+MULTIPLY = KeyCode(char="*")
+ADD = KeyCode(char="+")
+SEPARATOR = KeyCode(char=".")  # this is locale-dependent.
+SUBTRACT = KeyCode(char="-")
+DECIMAL = KeyCode(char=".")
+DIVIDE = KeyCode(char="/")
+NUMPAD0 = KeyCode(char="0")
+NUMPAD1 = KeyCode(char="1")
+NUMPAD2 = KeyCode(char="2")
+NUMPAD3 = KeyCode(char="3")
+NUMPAD4 = KeyCode(char="4")
+NUMPAD5 = KeyCode(char="5")
+NUMPAD6 = KeyCode(char="6")
+NUMPAD7 = KeyCode(char="7")
+NUMPAD8 = KeyCode(char="8")
+NUMPAD9 = KeyCode(char="9")
+
+BUY_LMT_PLUS = 0.05
+SELL_LMT_PLUS = -0.05
+ACCOUNT_COLUMNS=['key', 'value', 'currency']
 
 class TestWrapper(EWrapper):
-    def test():
-        print("This is test")
 
     # The API treats many items as errors even though they are not.
     def error(self, reqId, errorCode, errorMsg="", advancedOrderRejectJson=""):
@@ -30,11 +58,6 @@ class TestWrapper(EWrapper):
 class TestClient(EClient):
      def __init__(self, wrapper):
          EClient.__init__(self, wrapper)
-         
-         
-from decimal import *
-
-ACCOUNT_COLUMNS=['key', 'value', 'currency']
 
 class TestApp(TestWrapper, TestClient):
   
@@ -103,8 +126,9 @@ class TestApp(TestWrapper, TestClient):
     def tickPrice(self, reqId, tickType, price, attrib):
             # for i in range(91):
             #     print(TickTypeEnum.to_str(i), i)
-            print("reqID is ", reqId, "tickType is :", TickTypeEnum.to_str[tickType], " and the price is ", price)
-            self.mkt_price = price
+            print("reqID is ", reqId, "tickType is :", TickTypeEnum.to_str(tickType), " and the price is ", price)
+            if price > 0:
+                 self.mkt_price = price
 
     # after reqHistoricalData, this function is used to receive the data.
     def historicalData(self, reqId, bar):
@@ -153,16 +177,59 @@ def stock_contract(symbol,pri_exchange="NASDAQ"):
 
 
 #Create buy order object,default quantity is 10
+#  order.OrderType = "LMT" , "MKT"
 def buy_order(price="",quantity:int=10):
-    if price != "":
+    if price != "" and quantity > 0:
         order = Order()
+
         order.action = 'BUY'
+        order.totalQuantity = quantity
+        # 
+        order.orderType = 'LMT'
+        order.lmtPrice = price
+        return order
+    else:
+         raise ValueError(f"invalid  price target {price}  or quantity {quantity}  in buy_order!")
+
+#Create buy order object,default quantity is 10
+def sell_order(price="",quantity:int=10):
+    if price != "" and quantity > 0:
+        order = Order()
+        order.action = 'SELL'
         order.totalQuantity = quantity
         order.orderType = 'LMT'
         order.lmtPrice = price
         return order
     else:
-         raise ValueError("No price target given in buy_order!")
+         raise ValueError(f"invalid  price target {price}  or quantity {quantity}  in sell_order!")
+
+# A Stop-Limit order is an instruction to submit a buy or sell limit order when the user-specified stop trigger price is attained or penetrated. The order has two basic components: the stop price and the limit price. When a trade has occurred at or through the stop price, the order becomes executable and enters the market as a limit order, which is an order to buy or sell at a specified price or better.
+def stop_buy_lmt_order(stop_price="", limit_price="",quantity=10):
+    if stop_price != "" and limit_price != "" and stop_price > 0 and limit_price >0  and quantity > 0:
+        order = Order()
+        order.Action = 'BUY'
+        order.OrderType = "STP LMT"
+        order.AuxPrice = stop_price
+        order.lmtPrice = limit_price
+        order.TotalQuantity = quantity;     
+    else:
+         raise ValueError(f"invalid  stop_price target {stop_price} , limit_price {limit_price} or quantity {quantity}  in stop_buy_lmt_order!")
+
+
+# A sell trailing stop order sets the stop price at a fixed amount below the market price with an attached "trailing" amount. As the market price rises, the stop price rises by the trail amount, but if the stock price falls, the stop loss price doesn't change, and a market order is submitted when the stop price is hit. This technique is designed to allow an investor to specify a limit on the maximum possible loss, without setting a limit on the maximum possible gain. "Buy" trailing stop orders are the mirror image of sell trailing stop orders, and are most appropriate for use in falling markets.
+# Note that Trailing Stop orders can have the trailing amount specified as a percent, as in the example below, or as an absolute amount which is specified in the auxPrice field.
+
+def trailing_stop_buy_order(trailing_acount=0, stop_price=0, quantity = 10):
+    if stop_price and trailing_acount and stop_price > 0 and trailing_acount >0  and quantity > 0:
+        order = Order()
+        order.Action = 'BUY'
+        order.OrderType = "TRAIL"
+        order.TrailStopPrice = stop_price
+        order.auxPrice = trailing_acount
+        order.TotalQuantity = quantity;  
+       
+    else:
+         raise ValueError(f"invalid  stop_price target {stop_price} , trailing_acount {trailing_acount} or quantity {quantity}  in trailing_stop_buy_order!")
 
 # get the histroy data for a contract
 def get_his_data(app=TestApp(),contract=Contract()):
@@ -180,7 +247,43 @@ def get_his_data(app=TestApp(),contract=Contract()):
     df['20SMA'] = df['Close'].rolling(20).mean()
     # print(df.tail(10))
 
+def place_buy_lmt_order(app=TestApp(), contract=Contract(),increamental=BUY_LMT_PLUS,quantity=10):
+    ############ placing order started here
+    if app.mkt_price > 0 and len(contract.symbol) > 0:
+        order = buy_order(str(app.mkt_price+increamental),quantity)
+        #Place order
+        print('placing order to server for  now ...')
+        app.placeOrder(app.nextorderId, contract, order)
+        #app.nextorderId += 1
+        time.sleep(1)
 
+        ############# creating order finished
+    else:
+         print(f"place order failed.: for app.mkt_price {app.mkt_price}, symbol is {contract.symbol}")
+
+
+def place_sell_lmt_order(app=TestApp(), contract=Contract(),increamental=SELL_LMT_PLUS,quantity=10):
+    ############ placing order started here
+    if app.mkt_price > 0 and len(contract.symbol) > 0:
+        order = sell_order(str(app.mkt_price+increamental),quantity)
+        #Place order
+        print(f'placing order to server for  now ... order price at  {order.lmtPrice}')
+        app.placeOrder(app.nextorderId, contract, order)
+        #app.nextorderId += 1
+        time.sleep(1)
+
+        ############# creating order finished
+    else:
+         print(f"place order failed.: for app.mkt_price {app.mkt_price}, symbol is {contract.symbol}")
+
+
+# cancel last order
+def cancel_last_order(app=TestApp()):
+     if app.nextorderId:
+          print('placing order to server now ...')
+          app.cancelOrder(app.nextorderId,"")
+     else:
+          print('no order to be cancelled...')
 
 def main():
 
@@ -188,9 +291,9 @@ def main():
         app.run()
 
     app = TestApp()
-
-    # app.connect('127.0.0.1', 7497, 155)
-    app.connect('192.168.1.146', 7497, 199)
+    print("program is starting ...")
+    app.connect('127.0.0.1', 7497, 1)
+    # app.connect('192.168.1.146', 7497, 1)
     
     print(app.isConnected())
 
@@ -243,19 +346,18 @@ def main():
     def on_press(key):
         try:
             # print('alphanumeric key {0} pressed'.format(key.char))
-            if key == keyboard.Key.f9:
-                     ############ placing order started here
-                    order = buy_order(str(app.mkt_price),10)
-                    #Place order
-                    app.placeOrder(app.nextorderId, apple_contract, order)
-                    #app.nextorderId += 1
+            if key == PLACE_BUY_ORDER:
+                place_buy_lmt_order(app,apple_contract)
 
-                    time.sleep(3)
+            elif key == PLACE_SELL_ORDER:
+                place_sell_lmt_order(app,apple_contract)
 
-                    #Cancel order 
-                    print('cancelling order')
-                    app.cancelOrder(app.nextorderId,"")
-                    ############# creating order finished
+            elif key == CANCEL_LAST_ORDER:
+                 cancel_last_order(app)
+
+            elif key == NUMPAD0:
+                 print("Number 0 pressed...")
+
         except AttributeError:
             print('special key {0} pressed'.format(
                 key))
@@ -270,6 +372,7 @@ def main():
             # Once the subscription to account updates is no longer needed, it can be cancelled by invoking the IBApi.EClient.reqAccountUpdates method while specifying the susbcription flag to be False.
             app.reqAccountUpdates(False, app.account)
             time.sleep(1) 
+            print("Exiting Program...")
             app.disconnect()
             return False
  
