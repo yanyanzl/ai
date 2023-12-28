@@ -83,6 +83,9 @@ yf.pdr_override()
 start = datetime(datetime.now().year, 1, 2)
 end = datetime.today()
 
+# print(os.environ)
+# print(os.get_exec_path())
+
 # variables defined here could be get from the user's input in the
 # future but not fixed
 # target_price = "Close"
