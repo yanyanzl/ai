@@ -327,8 +327,6 @@ def BracketOrder(parentOrderId:int, action:str, quantity:Decimal,
 #     self.nextOrderId()  # need to advance this we'll skip one extra oid, it's fine
 
 
-
-
 # get the histroy data for a contract
 def get_his_data(app=TestApp(),contract=Contract()):
     #Request historical candles
