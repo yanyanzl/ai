@@ -21,16 +21,18 @@ import time
 
 import os
 #################### move functions out to a seperate file. 
-#################### avoid to use common keys to enable other input. 
 #################### how to change symbol quickly and add GUI? 
          
 from decimal import *
 
+
+DEBUG = True
+
 PLACE_BUY_ORDER = keyboard.Key.f1
 PLACE_SELL_ORDER = keyboard.Key.f5
 
-CANCEL_LAST_ORDER = KeyCode(char="c")
-CANCEL_ALL_ORDER = keyboard.Key.backspace
+CANCEL_LAST_ORDER = [{keyboard.Key.shift, KeyCode(char="c")},{keyboard.Key.shift, KeyCode(char="C")}]
+CANCEL_ALL_ORDER = [{keyboard.Key.shift, keyboard.Key.backspace}, {keyboard.Key.shift, keyboard.Key.delete}]
 
 PLACE_IOC_BUY = keyboard.Key.f9
 PLACE_IOC_SELL = keyboard.Key.f12
@@ -40,13 +42,15 @@ PLACE_STOP_SELL = keyboard.Key.f11
 
 PLACE_BRACKET_BUY = keyboard.Key.f7
 PLACE_BRACKET_SELL  = keyboard.Key.f8
-REQ_OPEN_ORDER = KeyCode(char="o")
 
-TICK_BIDASK = KeyCode(char="t")
-CANCEL_TICK_BIDASK = KeyCode(char="r")
 
-SHOW_PORT = KeyCode(char="p")
-SHOW_SUMMARY = KeyCode(char="s")
+REQ_OPEN_ORDER = [{keyboard.Key.shift, KeyCode(char="o")},{keyboard.Key.shift, KeyCode(char="O")}]
+
+TICK_BIDASK = [{keyboard.Key.shift, KeyCode(char="t")},{keyboard.Key.shift, KeyCode(char="T")}]
+CANCEL_TICK_BIDASK = [{keyboard.Key.shift, KeyCode(char="r")},{keyboard.Key.shift, KeyCode(char="R")}]
+
+SHOW_PORT = [{keyboard.Key.shift, KeyCode(char="p")},{keyboard.Key.shift, KeyCode(char="P")}]
+SHOW_SUMMARY = [{keyboard.Key.shift, KeyCode(char="s")},{keyboard.Key.shift, KeyCode(char="S")}]
 
 MULTIPLY = KeyCode(char="*")
 ADD = KeyCode(char="+")
@@ -55,15 +59,7 @@ SUBTRACT = KeyCode(char="-")
 DECIMAL = KeyCode(char=".")
 DIVIDE = KeyCode(char="/")
 NUMPAD0 = KeyCode(char="0")
-NUMPAD1 = KeyCode(char="1")
-NUMPAD2 = KeyCode(char="2")
-NUMPAD3 = KeyCode(char="3")
-NUMPAD4 = KeyCode(char="4")
-NUMPAD5 = KeyCode(char="5")
-NUMPAD6 = KeyCode(char="6")
-NUMPAD7 = KeyCode(char="7")
-NUMPAD8 = KeyCode(char="8")
-NUMPAD9 = KeyCode(char="9")
+
 
 BUY_LMT_PLUS = 0.05
 SELL_LMT_PLUS = -0.05
@@ -495,7 +491,7 @@ def main():
 
     app = TestApp()
     print("program is starting ...")
-    app.connect('127.0.0.1', 7497, 2)
+    app.connect('127.0.0.1', 7497, 16)
     # app.connect('192.168.1.146', 7497, 1)
     
     print(app.isConnected())
@@ -535,12 +531,15 @@ def main():
     # time.sleep(2)
 
 
+
     ################ keyboard input monitoring part start
     # monitoring the keyboard and make it available to control the order
+    combo_key = set()
+
     def on_press(key):
         try:
             
-            # print('alphanumeric key {0} pressed'.format(key.char))
+            # print('alphanumeric key pressed', key.char.lower())
 
             # place limit buy order Tif = day
             if key == PLACE_BUY_ORDER:
@@ -549,14 +548,20 @@ def main():
             # place limit buy order Tif = day
             elif key == PLACE_SELL_ORDER:
                 place_lmt_order(app,contract, "SELL", increamental=SELL_LMT_PLUS)
-
+            
             # cancel last order
-            elif key == CANCEL_LAST_ORDER:
-                 cancel_last_order(app)
+            elif any([key in COMBO for COMBO in CANCEL_LAST_ORDER]): # Checks if pressed key is in any combinations
+                combo_key.add(key)
+                if any(all (k in combo_key for k in COMBO) for COMBO in CANCEL_LAST_ORDER): # Checks if every key of the combination has been pressed
+                    cancel_last_order(app)
+                    combo_key.clear()
 
             # cancel all orders
-            elif key == CANCEL_ALL_ORDER:
-                 cancel_all_order(app)
+            elif any([key in COMBO for COMBO in CANCEL_ALL_ORDER]): # Checks if pressed key is in any combinations
+                combo_key.add(key)
+                if any(all (k in combo_key for k in COMBO) for COMBO in CANCEL_ALL_ORDER): # Checks if every key of the combination has been pressed
+                    cancel_all_order(app)
+                    combo_key.clear()
 
             elif key == PLACE_IOC_BUY:
                  place_lmt_order(app,contract, "BUY", tif="IOC", increamental=BUY_LMT_PLUS, priceTickType="ASK")
@@ -577,26 +582,43 @@ def main():
             elif key ==  PLACE_BRACKET_SELL:
                  pass
             
-            elif key == REQ_OPEN_ORDER:
-                #  Requests all current open orders in associated accounts at the current moment. The existing orders will be received via the openOrder and orderStatus events. Open orders are returned once; this function does not initiate a subscription.
-                 print("requesting all Open orders from server now ...")
-                 app.reqAllOpenOrders()
+            elif any([key in COMBO for COMBO in REQ_OPEN_ORDER]): #  Requests all current open orders in associated accounts at the current moment. The existing orders will be received via the openOrder and orderStatus events. Open orders are returned once; this function does not initiate a subscription.
+                combo_key.add(key)
+                if any(all (k in combo_key for k in COMBO) for COMBO in REQ_OPEN_ORDER): # Checks if every key of the combination has been pressed
+                    print("requesting all Open orders from server now ...")
+                    app.reqAllOpenOrders()
 
-            elif key == TICK_BIDASK:
-                 print("requesting tick by tick bidask data from server now ...")
-                 app.reqTickByTickData(19003, contract, "BidAsk", 0, True)
+                    combo_key.clear()
 
-            elif key == CANCEL_TICK_BIDASK:
-                 print("cancelling tick by tick bidask data from server now ...")
-                 app.cancelTickByTickData(19003)
+            elif any([key in COMBO for COMBO in TICK_BIDASK]): 
+                combo_key.add(key)
+                if any(all (k in combo_key for k in COMBO) for COMBO in TICK_BIDASK): # Checks if every key of the combination has been pressed
+                    print("requesting tick by tick bidask data from server now ...")
+                    app.reqTickByTickData(19003, contract, "BidAsk", 0, True)
+                    combo_key.clear()
 
-            elif key == SHOW_PORT:
-                 show_portforlio(app)
+            elif any([key in COMBO for COMBO in CANCEL_TICK_BIDASK]): 
+                combo_key.add(key)
+                if any(all (k in combo_key for k in COMBO) for COMBO in CANCEL_TICK_BIDASK): # Checks if every key of the combination has been pressed
+                    print("cancelling tick by tick bidask data from server now ...")
+                    app.cancelTickByTickData(19003)
+                    combo_key.clear()
 
-            elif key == SHOW_SUMMARY:
-                 show_summary(app)
+            elif any([key in COMBO for COMBO in SHOW_PORT]): 
+                combo_key.add(key)
+                if any(all (k in combo_key for k in COMBO) for COMBO in SHOW_PORT): # Checks if every key of the combination has been pressed
+                    show_portforlio(app)
+                    combo_key.clear()
+
+            elif any([key in COMBO for COMBO in SHOW_SUMMARY]): 
+                combo_key.add(key)
+                if any(all (k in combo_key for k in COMBO) for COMBO in SHOW_SUMMARY): # Checks if every key of the combination has been pressed
+                    show_summary(app)
+                    combo_key.clear()
+
             else:
-                 print(f"{key} is not defined for any function now ...")
+                 if DEBUG:
+                      print(f"{key} is not defined for any function now ...")
 
         except AttributeError:
             print('special key {0} pressed'.format(
@@ -614,7 +636,13 @@ def main():
             print("Exiting Program...")
             app.disconnect()
             return False
- 
+        
+        # in case only part of the key pressed. those key should be removed from combo_key.
+        elif any([key in combo_key]):
+             combo_key.remove(key)
+             print(f"removing...{key}")
+
+
     # in a non-blocking fashion:
     # A keyboard listener is a threading.Thread, and all callbacks will be invoked from the thread.
     # Call pynput.keyboard.Listener.stop from anywhere, raise StopException or return False from a callback to stop the listener.
@@ -625,6 +653,38 @@ def main():
     on_release=on_release)
     listener.start()
     # app.disconnect()
+ 
+    # def on_activate_h():
+    #     print('<ctrl>+<alt>+h pressed')
+
+    # def on_activate_i():
+    #     print('<ctrl>+<alt>+i pressed')
+
+    # print("before hotkeys start() ... ")
+    # hotkeys_listener =  
+    # try:
+    #     # with keyboard.GlobalHotKeys({
+    #     #         '<ctrl>+<alt>+h': on_activate_h,
+    #     #         '<ctrl>+<alt>+i': on_activate_i}) as hotkeys_listener:
+    #     #     hotkeys_listener.join()
+    #     def on_activate():
+    #         print('Global hotkey activated!')
+
+    #     def for_canonical(f):
+    #         return lambda k: f(l.canonical(k))
+
+    #     hotkey = keyboard.HotKey(
+    #         keyboard.HotKey.parse('<ctrl>+<alt>+h'),
+    #         on_activate)
+    #     with keyboard.Listener(
+    #             on_press=for_canonical(hotkey.press),
+    #             on_release=for_canonical(hotkey.release)) as l:
+    #         l.join() 
+    # except Exception as ex:
+    #      print(f"starting hotkeys failed. {type(ex).__name__}, {ex.args}")
+
+    # hotkeys_listener.start()
+
     ################ keyboard input monitoring part end
     
 if __name__ == "__main__":
