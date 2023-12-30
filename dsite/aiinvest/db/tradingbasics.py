@@ -24,7 +24,7 @@ from aicontract import *
 
 DEBUG = True
 
-PLACE_BUY_ORDER = keyboard.Key.f1
+PLACE_BUY_ORDER = keyboard.Key.f4
 PLACE_SELL_ORDER = keyboard.Key.f5
 
 CANCEL_LAST_ORDER = [{keyboard.Key.shift, KeyCode(char="c")},{keyboard.Key.shift, KeyCode(char="C")}]
@@ -46,6 +46,10 @@ CANCEL_TICK_BIDASK = [{keyboard.Key.shift, KeyCode(char="r")},{keyboard.Key.shif
 
 SHOW_PORT = [{keyboard.Key.shift, KeyCode(char="p")},{keyboard.Key.shift, KeyCode(char="P")}]
 SHOW_SUMMARY = [{keyboard.Key.shift, KeyCode(char="s")},{keyboard.Key.shift, KeyCode(char="S")}]
+
+CHANGE_CONTRACT = keyboard.Key.f1
+SHOW_CURRENT_CONTRACT = keyboard.Key.f2
+
 
 MULTIPLY = KeyCode(char="*")
 ADD = KeyCode(char="+")
@@ -75,6 +79,43 @@ def get_his_data(app=AiApp(),contract=Contract()):
     df['20SMA'] = df['Close'].rolling(20).mean()
     # print(df.tail(10))
 
+
+def change_current_Contract(app=AiApp()):
+    """ Create contract object
+    """
+    try:
+        if app.isConnected():
+            while True:
+                contractType = input("Input F (for FX) or S (for Stock):")
+                if any([contractType.lower() in ['f','s']]):
+                    break
+                else:
+                    print("invalid input...")
+
+            while True:
+                if contractType.lower() == 'f':
+                    symbol = input("Input FX name (six letter, like EURUSD):")
+                    if symbol and len(symbol) == 6:
+                        app.set_current_Contract(fx_contract(symbol))
+                        break
+                        
+                else:
+                    symbol = input("Input stock tick name (like TSLA or AAPL):")
+                    if symbol and len(symbol) > 0:
+                        app.set_current_Contract(stock_contract(symbol))
+                        break
+                print("invalid input...")
+
+    except Exception as ex:
+        print("failed to change current contract. invalid input.")
+
+def show_current_Contract(app=AiApp()):
+    """ Create contract object
+    """
+    if app.isConnected() and app.currentContract:
+        print(f"current contract is ... \n {app.currentContract}")
+    else:
+        print(f"show current contract failed.connected: {app.isConnected()}. current contract {app.currentContract}")
 
 def main():
 
@@ -114,12 +155,11 @@ def main():
     # The IBApi.EClient.reqAccountUpdates function creates a subscription to the TWS through which account and portfolio information is delivered. This information is the exact same as the one displayed within the TWS’ Account Window. Just as with the TWS’ Account Window, unless there is a position change this information is updated at a fixed interval of three minutes.
     app.reqAccountUpdates(True, app.account)
 
-    #Create contract object
-    contract = stock_contract('AAPL')
+    app.set_current_Contract(stock_contract("AAPL"))
 
     #Request Market Data. should be in market open time.
     app.reqMarketDataType(3) # -1 is real time stream. 3 is delayed data.
-    app.reqMktData(1, contract, '', True, False, [])
+    app.reqMktData(1, app.currentContract, '', True, False, [])
     # time.sleep(2)
 
 
@@ -134,11 +174,11 @@ def main():
 
             # place limit buy order Tif = day
             if key == PLACE_BUY_ORDER:
-                place_lmt_order(app,contract, "BUY", increamental=BUY_LMT_PLUS)
+                place_lmt_order(app, "BUY", increamental=BUY_LMT_PLUS)
 
             # place limit buy order Tif = day
             elif key == PLACE_SELL_ORDER:
-                place_lmt_order(app,contract, "SELL", increamental=SELL_LMT_PLUS)
+                place_lmt_order(app, "SELL", increamental=SELL_LMT_PLUS)
             
             # cancel last order
             elif any([key in COMBO for COMBO in CANCEL_LAST_ORDER]): # Checks if pressed key is in any combinations
@@ -147,6 +187,13 @@ def main():
                     cancel_last_order(app)
                     combo_key.clear()
 
+            elif key == CHANGE_CONTRACT:
+                print("change current contract...")
+                change_current_Contract(app)
+            
+            elif key == SHOW_CURRENT_CONTRACT:
+                show_current_Contract(app)
+                
             # cancel all orders
             elif any([key in COMBO for COMBO in CANCEL_ALL_ORDER]): # Checks if pressed key is in any combinations
                 combo_key.add(key)
@@ -155,10 +202,10 @@ def main():
                     combo_key.clear()
 
             elif key == PLACE_IOC_BUY:
-                 place_lmt_order(app,contract, "BUY", tif="IOC", increamental=BUY_LMT_PLUS, priceTickType="ASK")
+                 place_lmt_order(app, "BUY", tif="IOC", increamental=BUY_LMT_PLUS, priceTickType="ASK")
             
             elif key ==  PLACE_IOC_SELL:
-                 place_lmt_order(app,contract, "SELL", tif="IOC", increamental=SELL_LMT_PLUS, priceTickType="BID")
+                 place_lmt_order(app, "SELL", tif="IOC", increamental=SELL_LMT_PLUS, priceTickType="BID")
             
             ########### to be completed
             elif key ==  PLACE_STOP_SELL:
@@ -185,7 +232,7 @@ def main():
                 combo_key.add(key)
                 if any(all (k in combo_key for k in COMBO) for COMBO in TICK_BIDASK): # Checks if every key of the combination has been pressed
                     print("requesting tick by tick bidask data from server now ...")
-                    app.reqTickByTickData(19003, contract, "BidAsk", 0, True)
+                    app.reqTickByTickData(19003, app.currentContract, "BidAsk", 0, True)
                     combo_key.clear()
 
             elif any([key in COMBO for COMBO in CANCEL_TICK_BIDASK]): 
@@ -209,7 +256,8 @@ def main():
 
             else:
                  if DEBUG:
-                      print(f"{key} is not defined for any function now ...")
+                     pass
+                    #print(f"{key} is not defined for any function now ...")
 
         except AttributeError:
             print('special key {0} pressed'.format(
@@ -231,7 +279,9 @@ def main():
         # in case only part of the key pressed. those key should be removed from combo_key.
         elif any([key in combo_key]):
              combo_key.remove(key)
-             print(f"removing...{key}")
+            #  print(f"removing...{key}")
+        else:
+            print(f"you pressed...{key}")
 
 
     # in a non-blocking fashion:
@@ -243,38 +293,6 @@ def main():
     on_press=on_press,
     on_release=on_release)
     listener.start()
-    # app.disconnect()
- 
-    # def on_activate_h():
-    #     print('<ctrl>+<alt>+h pressed')
-
-    # def on_activate_i():
-    #     print('<ctrl>+<alt>+i pressed')
-
-    # print("before hotkeys start() ... ")
-    # hotkeys_listener =  
-    # try:
-    #     # with keyboard.GlobalHotKeys({
-    #     #         '<ctrl>+<alt>+h': on_activate_h,
-    #     #         '<ctrl>+<alt>+i': on_activate_i}) as hotkeys_listener:
-    #     #     hotkeys_listener.join()
-    #     def on_activate():
-    #         print('Global hotkey activated!')
-
-    #     def for_canonical(f):
-    #         return lambda k: f(l.canonical(k))
-
-    #     hotkey = keyboard.HotKey(
-    #         keyboard.HotKey.parse('<ctrl>+<alt>+h'),
-    #         on_activate)
-    #     with keyboard.Listener(
-    #             on_press=for_canonical(hotkey.press),
-    #             on_release=for_canonical(hotkey.release)) as l:
-    #         l.join() 
-    # except Exception as ex:
-    #      print(f"starting hotkeys failed. {type(ex).__name__}, {ex.args}")
-
-    # hotkeys_listener.start()
 
     ################ keyboard input monitoring part end
     

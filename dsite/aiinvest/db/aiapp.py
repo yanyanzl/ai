@@ -64,6 +64,7 @@ class AiApp(AiWrapper, AiClient):
         self.portfolio = pandas.DataFrame()
         # this is used for the cancel of the last order.
         self.lastOrderId = 0
+        self.currentContract = Contract()
 
     # overide the account Summary method. to get all the account summary information
     def accountSummary(self, reqId: int, account: str, tag: str, value: str,currency: str):
@@ -172,9 +173,13 @@ class AiApp(AiWrapper, AiClient):
 
         print("BidAsk. ReqId:", reqId, "Time:", datetime.fromtimestamp(time).strftime("%Y%m%d-%H:%M:%S"), "BidPrice:", floatMaxString(bidPrice), "AskPrice:", floatMaxString(askPrice), "BidSize:", decimalMaxString(bidSize), "AskSize:", decimalMaxString(askSize), "BidPastLow:", tickAttribBidAsk.bidPastLow, "AskPastHigh:", tickAttribBidAsk.askPastHigh)
 
+    def set_current_Contract(self, contract:Contract()):
+        """ change the current contract. all functions use contract will be affected.
+        """
+        self.currentContract = contract
 
 
-def place_lmt_order(app=AiApp(), contract=Contract(), action:str="", tif:str="DAY", increamental=BUY_LMT_PLUS, quantity=10, priceTickType="LAST"):
+def place_lmt_order(app=AiApp(), action:str="", tif:str="DAY", increamental=BUY_LMT_PLUS, quantity=10, priceTickType="LAST"):
     """
     send limit order to server
     """
@@ -185,21 +190,21 @@ def place_lmt_order(app=AiApp(), contract=Contract(), action:str="", tif:str="DA
     try:
         print(f"ask price {app.ask_price}, bid price {app.bid_price}, last price {app.last_price}")
         price = _get_order_price_by_type(app, priceTickType)
-        if len(contract.symbol) > 0:
+        if len(app.currentContract.symbol) > 0:
 
             order = lmt_order(str(price + increamental), action, quantity,tif)
 
             #Place order
-            print(f'placing limit order now ...\n orderid {app.nextorderId}, action: {action}, symbol {contract.symbol}, quantity: {quantity}, tif: {tif} at price: {order.lmtPrice}'  )
-            app.placeOrder(app.nextorderId, contract, order)
+            print(f'placing limit order now ...\n orderid {app.nextorderId}, action: {action}, symbol {app.currentContract.symbol}, quantity: {quantity}, tif: {tif} at price: {order.lmtPrice}'  )
+            app.placeOrder(app.nextorderId, app.currentContract, order)
             # orderId used, now get a new one for next time
             app.reqIds(app.nextorderId)
 
         else:
-            print(f"place order failed.:  symbol is {contract.symbol}, action is {action}")
+            print(f"place order failed.:  symbol is {app.currentContract.symbol}, action is {action}")
 
     except Exception as ex:
-         print(f"place order failed.: for price {price}, priceTickType: {priceTickType} symbol is {contract.symbol}, action is {action}")
+         print(f"place order failed.: for price {price}, priceTickType: {priceTickType} symbol is {app.currentContract.symbol}, action is {action}")
 
 def _get_order_price_by_type(app=AiApp(),priceTickType="LAST"): 
      """
@@ -255,10 +260,6 @@ def show_summary(app=AiApp()):
     else:
         print('show account summary failed. No connection ...')
 
-def change_current_Contract():
-    """ change the current contract. all functions use contract will be affected.
-    """
-    pass
 
 
 def main():
