@@ -5,7 +5,13 @@ build contract object:
     symbol: tick name for the contract. example: TSLA, AAPL
     SecType [get, set]
  	    The security's type: STK - stock (or ETF) OPT - option FUT - future IND - index FOP - futures option CASH - forex pair BAG - combo WAR - warrant BOND- bond CMDTY- commodity NEWS- news FUND- mutual fund
+    ConId: int. Identifier to specify an exact contract.
 
+    Exchange: String. Exchange for which data or trades should be routed.
+
+    PrimaryExchange: String. Primary listing exchange of the instrument.
+
+    Currency: String. Base currency the instrument is traded on.
 """
 from ibapi.contract import Contract
 
@@ -19,11 +25,12 @@ def fx_contract(symbol):
 	return contract
 
 #Function to create stock contract, by passing ticker name
-def stock_contract(symbol,pri_exchange="NASDAQ"):
+def stock_contract(symbol,pri_exchange=""):
     contract = Contract()
     contract.symbol = symbol
     contract.secType = 'STK'
     contract.exchange = 'SMART'
     contract.currency = 'USD'
-    contract.primaryExchange = pri_exchange
+    if pri_exchange:
+        contract.primaryExchange = pri_exchange
     return contract

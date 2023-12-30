@@ -19,8 +19,6 @@ import time
 from aiapp import *
 from aiorder import *
 from aicontract import *
-         
-# from decimal import Decimal
 
 DEBUG = True
 
@@ -44,6 +42,9 @@ REQ_OPEN_ORDER = [{keyboard.Key.shift, KeyCode(char="o")},{keyboard.Key.shift, K
 TICK_BIDASK = [{keyboard.Key.shift, KeyCode(char="t")},{keyboard.Key.shift, KeyCode(char="T")}]
 CANCEL_TICK_BIDASK = [{keyboard.Key.shift, KeyCode(char="r")},{keyboard.Key.shift, KeyCode(char="R")}]
 
+REQUIRE_REALTIME_BAR = [{keyboard.Key.shift, KeyCode(char="b")},{keyboard.Key.shift, KeyCode(char="B")}]
+CANCEL_REALTIME_BAR = [{keyboard.Key.shift, KeyCode(char="v")},{keyboard.Key.shift, KeyCode(char="v")}]
+
 SHOW_PORT = [{keyboard.Key.shift, KeyCode(char="p")},{keyboard.Key.shift, KeyCode(char="P")}]
 SHOW_SUMMARY = [{keyboard.Key.shift, KeyCode(char="s")},{keyboard.Key.shift, KeyCode(char="S")}]
 
@@ -57,7 +58,6 @@ SEPARATOR = KeyCode(char=".")  # this is locale-dependent.
 SUBTRACT = KeyCode(char="-")
 DIVIDE = KeyCode(char="/")
 NUMPAD0 = KeyCode(char="0")
-
 
 BUY_LMT_PLUS = 0.05
 SELL_LMT_PLUS = -0.05
@@ -81,7 +81,7 @@ def get_his_data(app=AiApp(),contract=Contract()):
 
 
 def change_current_Contract(app=AiApp()):
-    """ Create contract object
+    """ change the current contract object for the current AiApp instance.
     """
     try:
         if app.isConnected():
@@ -110,7 +110,7 @@ def change_current_Contract(app=AiApp()):
         print("failed to change current contract. invalid input.")
 
 def show_current_Contract(app=AiApp()):
-    """ Create contract object
+    """ show the current contract in the current AiApp instance. 
     """
     if app.isConnected() and app.currentContract:
         print(f"current contract is ... \n {app.currentContract}")
@@ -158,7 +158,7 @@ def main():
     app.set_current_Contract(stock_contract("AAPL"))
 
     #Request Market Data. should be in market open time.
-    app.reqMarketDataType(3) # -1 is real time stream. 3 is delayed data.
+    app.reqMarketDataType(1) # -1 is real time stream. 3 is delayed data.
     app.reqMktData(1, app.currentContract, '', True, False, [])
     # time.sleep(2)
 
@@ -193,7 +193,7 @@ def main():
             
             elif key == SHOW_CURRENT_CONTRACT:
                 show_current_Contract(app)
-                
+
             # cancel all orders
             elif any([key in COMBO for COMBO in CANCEL_ALL_ORDER]): # Checks if pressed key is in any combinations
                 combo_key.add(key)
@@ -254,6 +254,20 @@ def main():
                     show_summary(app)
                     combo_key.clear()
 
+            elif any([key in COMBO for COMBO in REQUIRE_REALTIME_BAR]): 
+                combo_key.add(key)
+                if any(all (k in combo_key for k in COMBO) for COMBO in REQUIRE_REALTIME_BAR): # Checks if every key of the combination has been pressed
+                    print("requesting real time Bars data from server now ...")
+                    # whatToShow	the nature of the data being retrieved: TRADES, MIDPOINT, BID, ASK
+                    app.reqRealTimeBars(19002,app.currentContract,1,"TRADES", 0,[])
+                    combo_key.clear()                    
+
+            elif any([key in COMBO for COMBO in CANCEL_REALTIME_BAR]): 
+                combo_key.add(key)
+                if any(all (k in combo_key for k in COMBO) for COMBO in CANCEL_REALTIME_BAR): # Checks if every key of the combination has been pressed
+                    print("cancalling real time Bars data from server now ...")
+                    app.cancelRealTimeBars(19002)
+                    combo_key.clear()  
             else:
                  if DEBUG:
                      pass
@@ -280,8 +294,8 @@ def main():
         elif any([key in combo_key]):
              combo_key.remove(key)
             #  print(f"removing...{key}")
-        else:
-            print(f"you pressed...{key}")
+        # else:
+        #     print(f"you pressed...{key}")
 
 
     # in a non-blocking fashion:
@@ -293,7 +307,6 @@ def main():
     on_press=on_press,
     on_release=on_release)
     listener.start()
-
     ################ keyboard input monitoring part end
     
 if __name__ == "__main__":

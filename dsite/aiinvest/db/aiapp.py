@@ -20,7 +20,10 @@ from aiorder import *
 BUY_LMT_PLUS = 0.05
 
 ACCOUNT_COLUMNS=['key', 'value', 'currency']
+
 PORTFOLIO_COLUMNS = ['symbol', 'sectype', 'exchange', 'position', 'marketprice', 'marketvalue', 'averagecost', 'unrealizedpnl', 'realizedpnl']
+
+ACCOUNT_INFO_SHOW_LIST = ['UnrealizedPnL','RealizedPnL', "NetLiquidation","TotalCashValue", "BuyingPower","GrossPositionValue", "AvailableFunds"]
 
 class AiWrapper(EWrapper):
 
@@ -38,6 +41,11 @@ class AiWrapper(EWrapper):
          super().execDetails(reqId,contract, execution)
 
          print('Order Executed: ', reqId, contract.symbol, contract.secType, contract.currency, execution.execId, execution.orderId, execution.shares, execution.lastLiquidity)    
+
+    def marketDataType(self, reqId: TickerId, marketDataType: int):
+        super().marketDataType(reqId, marketDataType)
+        
+        print("MarketDataType. ReqId:", reqId, "Type:", marketDataType)
 
     def openOrderEnd(self):
             super().openOrderEnd()
@@ -255,7 +263,7 @@ def show_summary(app=AiApp()):
 
     if app.isConnected():
         print(f'current portforlio for account{app.account} are showing below ... \n')
-        print("all needed summary : ", app.account_info.loc[app.account_info['key'].isin(['UnrealizedPnL','RealizedPnL'])])
+        print("Account info in the Show List are : \n", app.account_info.loc[app.account_info['key'].isin(ACCOUNT_INFO_SHOW_LIST)])
 
     else:
         print('show account summary failed. No connection ...')
