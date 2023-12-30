@@ -20,8 +20,9 @@ import threading
 import time
 
 import os
-
-
+#################### move functions out to a seperate file. 
+#################### avoid to use common keys to enable other input. 
+#################### how to change symbol quickly and add GUI? 
          
 from decimal import *
 
