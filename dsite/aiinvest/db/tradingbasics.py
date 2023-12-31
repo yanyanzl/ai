@@ -20,47 +20,9 @@ from aiapp import *
 from aiorder import *
 from aicontract import *
 
-DEBUG = True
+DEBUG = Aiconfig.get('DEBUG')
 
-PLACE_BUY_ORDER = keyboard.Key.f4
-PLACE_SELL_ORDER = keyboard.Key.f5
-
-CANCEL_LAST_ORDER = [{keyboard.Key.shift, KeyCode(char="c")},{keyboard.Key.shift, KeyCode(char="C")}]
-CANCEL_ALL_ORDER = [{keyboard.Key.shift, keyboard.Key.backspace}, {keyboard.Key.shift, keyboard.Key.delete}]
-
-PLACE_IOC_BUY = keyboard.Key.f9
-PLACE_IOC_SELL = keyboard.Key.f12
-
-PLACE_STOP_BUY = keyboard.Key.f10
-PLACE_STOP_SELL = keyboard.Key.f11
-
-PLACE_BRACKET_BUY = keyboard.Key.f7
-PLACE_BRACKET_SELL  = keyboard.Key.f8
-
-REQ_OPEN_ORDER = [{keyboard.Key.shift, KeyCode(char="o")},{keyboard.Key.shift, KeyCode(char="O")}]
-
-TICK_BIDASK = [{keyboard.Key.shift, KeyCode(char="t")},{keyboard.Key.shift, KeyCode(char="T")}]
-CANCEL_TICK_BIDASK = [{keyboard.Key.shift, KeyCode(char="r")},{keyboard.Key.shift, KeyCode(char="R")}]
-
-REQUIRE_REALTIME_BAR = [{keyboard.Key.shift, KeyCode(char="b")},{keyboard.Key.shift, KeyCode(char="B")}]
-CANCEL_REALTIME_BAR = [{keyboard.Key.shift, KeyCode(char="v")},{keyboard.Key.shift, KeyCode(char="v")}]
-
-SHOW_PORT = [{keyboard.Key.shift, KeyCode(char="p")},{keyboard.Key.shift, KeyCode(char="P")}]
-SHOW_SUMMARY = [{keyboard.Key.shift, KeyCode(char="s")},{keyboard.Key.shift, KeyCode(char="S")}]
-
-CHANGE_CONTRACT = keyboard.Key.f1
-SHOW_CURRENT_CONTRACT = keyboard.Key.f2
-
-
-MULTIPLY = KeyCode(char="*")
-ADD = KeyCode(char="+")
-SEPARATOR = KeyCode(char=".")  # this is locale-dependent.
-SUBTRACT = KeyCode(char="-")
-DIVIDE = KeyCode(char="/")
-NUMPAD0 = KeyCode(char="0")
-
-BUY_LMT_PLUS = 0.05
-SELL_LMT_PLUS = -0.05
+# MULTIPLY = KeyCode(char="*")
 
 
 # get the histroy data for a contract
@@ -124,7 +86,7 @@ def main():
 
     app = AiApp()
     print("program is starting ...")
-    app.connect('127.0.0.1', 7497, 16)
+    app.connect('127.0.0.1', 7497, 29)
     # app.connect('192.168.1.146', 7497, 1)
     
     print(app.isConnected())
@@ -171,103 +133,116 @@ def main():
         try:
             
             # print('alphanumeric key pressed', key.char.lower())
+            # change object key to lower string case without quotation mark.
+            key = str(key).lower().strip("'")
+
+            print(f"key is --- : {key}")
+            # print(Aiconfig.get('PLACE_BUY_ORDER'))
 
             # place limit buy order Tif = day
-            if key == PLACE_BUY_ORDER:
-                place_lmt_order(app, "BUY", increamental=BUY_LMT_PLUS)
+            if key == Aiconfig.get('PLACE_BUY_ORDER'):
+                place_lmt_order(app, "BUY", increamental=Aiconfig.get("BUY_LMT_PLUS"))
 
             # place limit buy order Tif = day
-            elif key == PLACE_SELL_ORDER:
-                place_lmt_order(app, "SELL", increamental=SELL_LMT_PLUS)
+            elif key == Aiconfig.get('PLACE_SELL_ORDER'):
+                place_lmt_order(app, "SELL", increamental=Aiconfig.get("SELL_LMT_PLUS"))
+
+             
+            # # cancel last order
+            # elif any([key in COMBO for COMBO in Aiconfig.get('CANCEL_LAST_ORDER')]): # Checks if pressed key is in any combinations
+            #     combo_key.add(key)
+            #     if any(all (k in combo_key for k in COMBO) for COMBO in Aiconfig.get('CANCEL_LAST_ORDER')): # Checks if every key of the combination has been pressed
+            #         cancel_last_order(app)
+            #         combo_key.clear()
             
             # cancel last order
-            elif any([key in COMBO for COMBO in CANCEL_LAST_ORDER]): # Checks if pressed key is in any combinations
+            elif any([key in Aiconfig.get('CANCEL_LAST_ORDER')]): # Checks if pressed key is in any combinations
                 combo_key.add(key)
-                if any(all (k in combo_key for k in COMBO) for COMBO in CANCEL_LAST_ORDER): # Checks if every key of the combination has been pressed
+                if all (k in combo_key for k in Aiconfig.get('CANCEL_LAST_ORDER')): # Checks if every key of the combination has been pressed
                     cancel_last_order(app)
                     combo_key.clear()
 
-            elif key == CHANGE_CONTRACT:
+            elif key == Aiconfig.get('CHANGE_CONTRACT'):
                 print("change current contract...")
                 change_current_Contract(app)
             
-            elif key == SHOW_CURRENT_CONTRACT:
+            elif key == Aiconfig.get('SHOW_CURRENT_CONTRACT'):
                 show_current_Contract(app)
 
             # cancel all orders
-            elif any([key in COMBO for COMBO in CANCEL_ALL_ORDER]): # Checks if pressed key is in any combinations
+            elif any([key in Aiconfig.get('CANCEL_ALL_ORDER')]): # Checks if pressed key is in any combinations
                 combo_key.add(key)
-                if any(all (k in combo_key for k in COMBO) for COMBO in CANCEL_ALL_ORDER): # Checks if every key of the combination has been pressed
+                if all (k in combo_key for k in Aiconfig.get('CANCEL_ALL_ORDER')): # Checks if every key of the combination has been pressed
                     cancel_all_order(app)
                     combo_key.clear()
 
-            elif key == PLACE_IOC_BUY:
-                 place_lmt_order(app, "BUY", tif="IOC", increamental=BUY_LMT_PLUS, priceTickType="ASK")
+            elif key == Aiconfig.get('PLACE_IOC_BUY'):
+                 place_lmt_order(app, "BUY", tif="IOC", increamental=Aiconfig.get('BUY_LMT_PLUS'), priceTickType="ASK")
             
-            elif key ==  PLACE_IOC_SELL:
-                 place_lmt_order(app, "SELL", tif="IOC", increamental=SELL_LMT_PLUS, priceTickType="BID")
+            elif key ==  Aiconfig.get('PLACE_IOC_SELL'):
+                 place_lmt_order(app, "SELL", tif="IOC", increamental=Aiconfig.get('SELL_LMT_PLUS'), priceTickType="BID")
             
             ########### to be completed
-            elif key ==  PLACE_STOP_SELL:
+            elif key ==  Aiconfig.get('PLACE_STOP_SELL'):
                  pass
             
-            elif key ==  PLACE_STOP_BUY:
+            elif key ==  Aiconfig.get('PLACE_STOP_BUY'):
                  pass
             
-            elif key ==  PLACE_BRACKET_BUY:
+            elif key ==  Aiconfig.get('PLACE_BRACKET_BUY'):
                  pass
             
-            elif key ==  PLACE_BRACKET_SELL:
+            elif key ==  Aiconfig.get('PLACE_BRACKET_SELL'):
                  pass
             
-            elif any([key in COMBO for COMBO in REQ_OPEN_ORDER]): #  Requests all current open orders in associated accounts at the current moment. The existing orders will be received via the openOrder and orderStatus events. Open orders are returned once; this function does not initiate a subscription.
+            elif any([key in Aiconfig.get('REQ_OPEN_ORDER')]): #  Requests all current open orders in associated accounts at the current moment. The existing orders will be received via the openOrder and orderStatus events. Open orders are returned once; this function does not initiate a subscription.
                 combo_key.add(key)
-                if any(all (k in combo_key for k in COMBO) for COMBO in REQ_OPEN_ORDER): # Checks if every key of the combination has been pressed
+                if all (k in combo_key for k in Aiconfig.get('REQ_OPEN_ORDER')): # Checks if every key of the combination has been pressed
                     print("requesting all Open orders from server now ...")
                     app.reqAllOpenOrders()
-
                     combo_key.clear()
 
-            elif any([key in COMBO for COMBO in TICK_BIDASK]): 
+            elif any([key in Aiconfig.get('TICK_BIDASK')]): 
                 combo_key.add(key)
-                if any(all (k in combo_key for k in COMBO) for COMBO in TICK_BIDASK): # Checks if every key of the combination has been pressed
+                if all (k in combo_key for k in Aiconfig.get('TICK_BIDASK')): # Checks if every key of the combination has been pressed
                     print("requesting tick by tick bidask data from server now ...")
                     app.reqTickByTickData(19003, app.currentContract, "BidAsk", 0, True)
                     combo_key.clear()
 
-            elif any([key in COMBO for COMBO in CANCEL_TICK_BIDASK]): 
+            elif any([key in Aiconfig.get('CANCEL_TICK_BIDASK')]): 
                 combo_key.add(key)
-                if any(all (k in combo_key for k in COMBO) for COMBO in CANCEL_TICK_BIDASK): # Checks if every key of the combination has been pressed
+                if all (k in combo_key for k in Aiconfig.get('CANCEL_TICK_BIDASK')): # Checks if every key of the combination has been pressed
                     print("cancelling tick by tick bidask data from server now ...")
                     app.cancelTickByTickData(19003)
                     combo_key.clear()
 
-            elif any([key in COMBO for COMBO in SHOW_PORT]): 
+            elif any([key in Aiconfig.get('SHOW_PORT')]): 
                 combo_key.add(key)
-                if any(all (k in combo_key for k in COMBO) for COMBO in SHOW_PORT): # Checks if every key of the combination has been pressed
+                if all (k in combo_key for k in Aiconfig.get('SHOW_PORT')): # Checks if every key of the combination has been pressed
                     show_portforlio(app)
                     combo_key.clear()
 
-            elif any([key in COMBO for COMBO in SHOW_SUMMARY]): 
+            elif any([key in Aiconfig.get('SHOW_SUMMARY')]): 
                 combo_key.add(key)
-                if any(all (k in combo_key for k in COMBO) for COMBO in SHOW_SUMMARY): # Checks if every key of the combination has been pressed
+                if all (k in combo_key for k in Aiconfig.get('SHOW_SUMMARY')): # Checks if every key of the combination has been pressed
                     show_summary(app)
                     combo_key.clear()
 
-            elif any([key in COMBO for COMBO in REQUIRE_REALTIME_BAR]): 
+            elif any([key in Aiconfig.get('REQUIRE_REALTIME_BAR')]): 
                 combo_key.add(key)
-                if any(all (k in combo_key for k in COMBO) for COMBO in REQUIRE_REALTIME_BAR): # Checks if every key of the combination has been pressed
+                if all (k in combo_key for k in Aiconfig.get('REQUIRE_REALTIME_BAR')): 
                     print("requesting real time Bars data from server now ...")
                     # whatToShow	the nature of the data being retrieved: TRADES, MIDPOINT, BID, ASK
                     app.reqRealTimeBars(19002,app.currentContract,1,"TRADES", 0,[])
-                    combo_key.clear()                    
+                    combo_key.clear() 
 
-            elif any([key in COMBO for COMBO in CANCEL_REALTIME_BAR]): 
+            elif any([key in Aiconfig.get('CANCEL_REALTIME_BAR')]): 
                 combo_key.add(key)
-                if any(all (k in combo_key for k in COMBO) for COMBO in CANCEL_REALTIME_BAR): # Checks if every key of the combination has been pressed
+                if all (k in combo_key for k in Aiconfig.get('CANCEL_REALTIME_BAR')): 
                     print("cancalling real time Bars data from server now ...")
                     app.cancelRealTimeBars(19002)
-                    combo_key.clear()  
+                    combo_key.clear()        
+
             else:
                  if DEBUG:
                      pass
@@ -279,7 +254,10 @@ def main():
 
     def on_release(key):
         # print('{0} released'.format(key))
-        if key == keyboard.Key.esc:
+        # change object key to lower string case without quotation mark.
+        key = str(key).lower().strip("'")
+
+        if key == 'key.esc':
             # Stop listener
             print("Stopping Listener...")
 

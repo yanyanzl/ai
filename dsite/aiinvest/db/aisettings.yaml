@@ -1,0 +1,75 @@
+ACCOUNT_COLUMNS:
+- key
+- value
+- currency
+ACCOUNT_INFO_SHOW_LIST:
+- UnrealizedPnL
+- RealizedPnL
+- NetLiquidation
+- TotalCashValue
+- BuyingPower
+- GrossPositionValue
+- AvailableFunds
+ASSET_LIST:
+- TSLA
+- AAPL
+- NVDA
+- META
+- AMD
+- AMZN
+- GOOG
+- COIN
+BUY_LMT_PLUS: 0.05
+CANCEL_ALL_ORDER:
+- key.shift
+- key.backspace
+CANCEL_LAST_ORDER:
+- key.shift
+- c
+CANCEL_REALTIME_BAR:
+- key.shift
+- v
+CANCEL_TICK_BIDASK:
+- key.shift
+- r
+CHANGE_CONTRACT: key.f1
+DEBUG: true
+PLACE_BRACKET_BUY: key.f7
+PLACE_BRACKET_SELL: key.f8
+PLACE_BUY_ORDER: key.f4
+PLACE_IOC_BUY: key.f9
+PLACE_IOC_SELL: key.f12
+PLACE_SELL_ORDER: key.f5
+PLACE_STOP_BUY: key.f10
+PLACE_STOP_SELL: key.f11
+PORTFOLIO_COLUMNS:
+- symbol
+- sectype
+- exchange
+- position
+- marketprice
+- marketvalue
+- averagecost
+- unrealizedpnl
+- realizedpnl
+REQUIRE_REALTIME_BAR:
+- key.shift
+- b
+REQ_OPEN_ORDER:
+- key.shift
+- o
+SELL_LMT_PLUS: -0.05
+SHOW_CURRENT_CONTRACT: key.f2
+SHOW_PORT:
+- key.shift
+- p
+SHOW_SUMMARY:
+- key.shift
+- s
+TICK_BIDASK:
+- key.shift
+- t
+another dict:
+  foo: bar
+  key: value
+  the answer: 66

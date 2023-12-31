@@ -16,14 +16,15 @@ import pandas
 from ibapi.common import * # @UnusedWildImport
 from ibapi.utils import * # @UnusedWildImport
 from aiorder import *
+from aisettings import Aiconfig
 
-BUY_LMT_PLUS = 0.05
+# BUY_LMT_PLUS = 0.05
 
-ACCOUNT_COLUMNS=['key', 'value', 'currency']
+# ACCOUNT_COLUMNS=['key', 'value', 'currency']
 
-PORTFOLIO_COLUMNS = ['symbol', 'sectype', 'exchange', 'position', 'marketprice', 'marketvalue', 'averagecost', 'unrealizedpnl', 'realizedpnl']
+# PORTFOLIO_COLUMNS = ['symbol', 'sectype', 'exchange', 'position', 'marketprice', 'marketvalue', 'averagecost', 'unrealizedpnl', 'realizedpnl']
 
-ACCOUNT_INFO_SHOW_LIST = ['UnrealizedPnL','RealizedPnL', "NetLiquidation","TotalCashValue", "BuyingPower","GrossPositionValue", "AvailableFunds"]
+# ACCOUNT_INFO_SHOW_LIST = ['UnrealizedPnL','RealizedPnL', "NetLiquidation","TotalCashValue", "BuyingPower","GrossPositionValue", "AvailableFunds"]
 
 class AiWrapper(EWrapper):
 
@@ -44,7 +45,7 @@ class AiWrapper(EWrapper):
 
     def marketDataType(self, reqId: TickerId, marketDataType: int):
         super().marketDataType(reqId, marketDataType)
-        
+
         print("MarketDataType. ReqId:", reqId, "Type:", marketDataType)
 
     def openOrderEnd(self):
@@ -80,7 +81,7 @@ class AiApp(AiWrapper, AiClient):
         self.account = account
         if tag != None and tag != "":
              self.account_info = pandas.concat([self.account_info,pandas.DataFrame([[tag, value, currency]],
-                   columns=ACCOUNT_COLUMNS)])
+                   columns=Aiconfig.get('ACCOUNT_COLUMNS'))])
  
 
     # overide the account Summary end method. 
@@ -103,7 +104,7 @@ class AiApp(AiWrapper, AiClient):
                 self.account_info = self.account_info.drop(index=self.account_info.loc[self.account_info['key'] == key].index)
                                                            
             self.account_info = pandas.concat([self.account_info,pandas.DataFrame([[key, val, currency]],
-                   columns=ACCOUNT_COLUMNS)], ignore_index=True)
+                   columns=Aiconfig.get('ACCOUNT_COLUMNS'))], ignore_index=True)
 
 
     # Receives the subscribed account’s portfolio. This function will receive only the portfolio of the subscribed account. After the initial callback to updatePortfolio, callbacks only occur for positions which have changed.
@@ -120,7 +121,7 @@ class AiApp(AiWrapper, AiClient):
                  break
 
         self.portfolio = pandas.concat([self.portfolio, pandas.DataFrame([[contract.symbol,contract.secType, contract.exchange,position,marketPrice,marketValue,averageCost, unrealizedPNL,realizedPNL]],
-                   columns= PORTFOLIO_COLUMNS)], ignore_index=True)
+                   columns=Aiconfig.get('PORTFOLIO_COLUMNS') )], ignore_index=True)
 
     # Receives the last time on which the account was updated.
     def updateAccountTime(self, timeStamp: str):
@@ -187,7 +188,7 @@ class AiApp(AiWrapper, AiClient):
         self.currentContract = contract
 
 
-def place_lmt_order(app=AiApp(), action:str="", tif:str="DAY", increamental=BUY_LMT_PLUS, quantity=10, priceTickType="LAST"):
+def place_lmt_order(app=AiApp(), action:str="", tif:str="DAY", increamental=Aiconfig.get('BUY_LMT_PLUS'), quantity=10, priceTickType="LAST"):
     """
     send limit order to server
     """
@@ -263,7 +264,7 @@ def show_summary(app=AiApp()):
 
     if app.isConnected():
         print(f'current portforlio for account{app.account} are showing below ... \n')
-        print("Account info in the Show List are : \n", app.account_info.loc[app.account_info['key'].isin(ACCOUNT_INFO_SHOW_LIST)])
+        print("Account info in the Show List are : \n", app.account_info.loc[app.account_info['key'].isin(Aiconfig.get('ACCOUNT_INFO_SHOW_LIST'))])
 
     else:
         print('show account summary failed. No connection ...')
