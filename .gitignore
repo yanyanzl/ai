@@ -7,7 +7,7 @@ __pycache__/
 cache.sqlite
 # C extensions
 *.so
-log/
+/log
 log.txt
 
 # Distribution / packaging
