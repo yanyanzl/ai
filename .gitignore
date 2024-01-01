@@ -1,3 +1,6 @@
+# ignore all files in any directory named build
+log/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -7,8 +10,7 @@ __pycache__/
 cache.sqlite
 # C extensions
 *.so
-dsite/aiinvest/db/log/
-log.txt
+
 
 # Distribution / packaging
 .Python
@@ -163,3 +165,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 .DS_Store
+
+
+dsite/aiinvest/db/log/log.txt
