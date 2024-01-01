@@ -7,8 +7,7 @@ __pycache__/
 cache.sqlite
 # C extensions
 *.so
-/log
-log.txt
+dsite/aiinvest/db/log/
 
 # Distribution / packaging
 .Python
