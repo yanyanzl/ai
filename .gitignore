@@ -8,6 +8,7 @@ cache.sqlite
 # C extensions
 *.so
 dsite/aiinvest/db/log/
+log.txt
 
 # Distribution / packaging
 .Python
