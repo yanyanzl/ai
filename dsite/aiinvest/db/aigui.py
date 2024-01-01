@@ -7,8 +7,6 @@ build the GUI for ai trading
 
 from tkinter import *
 
-import matplotlib
-matplotlib.use('TkAgg')
 from numpy import arange, sin, pi
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -18,31 +16,106 @@ from tkinter import messagebox
 from aisettings import Aiconfig
 from aitools import *
 
-# from matplotlib import colormaps
-# print(list(colormaps))
+import tkinter as tk
 
-#################### draw by matplotlib start here 
+import numpy as np
+import matplotlib
+import pandas
 
-
-def main():
-
-    lst = ['C', 'C++', 'Java',
-       'Python', 'Perl',
-       'PHP', 'ASP', 'JS']
+matplotlib.use("TkAgg")
 
 
-    def check_input(event):
+def get_plot(self, data:pandas.DataFrame=None):
+    f = Figure(figsize=(4,4), dpi=100)
+    a = f.add_subplot(111)
+    t = arange(0.0,3.0,0.01)
+    s = sin(2*pi*t)
+    a.plot(t,s)
+    return f
+
+class AiGUIMenu(tk.Frame):
+    def __init__(self, master = None) -> None:
+            super().__init__(master)
+
+            self.master = master
+            self.pack()
+            self.menu = None
+            self.filemenu = None
+            self.helpmenu = None
+            self.create_menu(master)
+
+    def create_menu(self, master:tk.Frame=None):
+        self.menu = Menu(master)
+        master.config(menu=self.menu)
+        self.filemenu = Menu(self.menu)
+        self.menu.add_cascade(label='File', menu=self.filemenu)
+        self.filemenu.add_command(label='New')
+        self.filemenu.add_command(label='Open...')
+        self.filemenu.add_separator()
+        self.filemenu.add_command(label='Exit', command=root.quit)
+        self.helpmenu = Menu( self.menu)
+        self.menu.add_cascade(label='Help', menu=self.helpmenu)
+        self.helpmenu.add_command(label='About')
+
+class RightClickMenu(tk.Frame):
+
+    menu = None
+    def __init__(self, master = None) -> None:
+            super().__init__(master)
+        
+            self.menu = None
+            self.create_menu(master)
+
+    def create_menu(self, master=None):
+        
+        self.menu = Menu(master, tearoff = 0) 
+        self.menu.add_command(label ="Cut") 
+        self.menu.add_command(label ="Copy") 
+        self.menu.add_command(label ="Paste") 
+        self.menu.add_command(label ="Reload") 
+        self.menu.add_separator() 
+        self.menu.add_command(label ="Rename")   
+
+    def do_popup(self, event): 
+        try: 
+            self.menu.tk_popup(event.x_root, event.y_root) 
+            display_message("popup menu...")
+        finally: 
+            self.menu.grab_release() 
+
+class AIGUIFrame(tk.Frame):
+
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
+        self.pack()
+        
+        self.combo_box = None
+        self.symbol_list = []
+        self.message_area = None
+        self.symbol_list_box = None
+        self.initialized = False
+
+        self.draw_head_frame()
+        self.draw_graph_frame()
+        self.draw_message_frame()
+        self.layout()
+        self.style()
+        # self.plot_graph()
+
+
+    def check_input(self, event):
         value = event.widget.get()
 
         if value == '':
-            combo_box['values'] = lst
+            self.combo_box['values'] = self.symbol_list
         else:
             data = []
-            for item in lst:
+            for item in self.symbol_list:
                 if value.lower() in item.lower():
                     data.append(item)
 
-            combo_box['values'] = data
+            self.combo_box['values'] = data
 
     # function to be called when button-2 of mouse is pressed
     def pressed2(event):
@@ -57,100 +130,90 @@ def main():
         print('Double clicked at x = % d, y = % d'%(event.x, event.y))
 
 
-    def select_symbol(event): 
+    def select_symbol(self, event): 
 
-        cs = symbol_list_box.curselection() 
+        cs = self.symbol_list_box.curselection() 
         # the index of the selected element in the list
-        print(symbol_list_box.curselection())
+        print(self.symbol_list_box.curselection())
 
         # the selected element
-        print(symbol_list_box.selection_get())
+        print(self.symbol_list_box.selection_get())
 
         # the event , like : <ButtonPress event num=1 x=35 y=48>
-        display_message(str(event), message_area)
+        display_message(str(event), self.message_area)
 
 
-    def do_popup(event): 
-        try: 
-            m.tk_popup(event.x_root, event.y_root) 
-        finally: 
-            m.grab_release() 
-
-    # function to be called when
-    # keyboard buttons are pressed
-    def key_press(event):
+    # function to be called when keyboard buttons are pressed
+    def key_press(self, event):
         
         key = event.char
         print(key, 'is pressed')
         print(event, 'event')
-        display_message(str(event), message_area)
+        display_message(str(event), self.message_area)
 
-    root = Tk()
-    '''
-    widgets are added here
-    '''
-    root.title("AI Invest APP")
 
-    #  menu start here
-    menu = Menu(root)
-    root.config(menu=menu)
-    filemenu = Menu(menu)
-    menu.add_cascade(label='File', menu=filemenu)
-    filemenu.add_command(label='New')
-    filemenu.add_command(label='Open...')
-    filemenu.add_separator()
-    filemenu.add_command(label='Exit', command=root.quit)
-    helpmenu = Menu(menu)
-    menu.add_cascade(label='Help', menu=helpmenu)
-    helpmenu.add_command(label='About')
+    def plot_graph(self, data=pandas.DataFrame([1,2,3,4])):
 
-    #################### draw by matplotlib start here 
-    f = Figure(figsize=(5,4), dpi=100)
-    a = f.add_subplot(111)
-    t = arange(0.0,3.0,0.01)
-    s = sin(2*pi*t)
-    a.plot(t,s)
+        # destroy previous one
+        # self.graph.destroy()
+        # draw a new frame and then plot
+        # self.draw_graph_frame()
+        self.figure = get_plot(pandas.DataFrame([1,2,3,4]))
+        self.canvas = FigureCanvasTkAgg(self.figure, self.graph)
+        self.canvas.get_tk_widget().pack(side = 'top')
 
-    dataPlot = FigureCanvasTkAgg(f, master=root)
 
-    topframe = Frame(root)
-
-    label_ai = Label(topframe, text='AI Invest')
+    def draw_graph_frame(self):
+        self.graph = tk.LabelFrame(self, text='', 
+                    font=("times new roman",16,"bold"),
+                    bg="white",bd=1,relief=tk.GROOVE)
+        self.graph.config(width=580,height=410)
+        if not self.initialized:
+            # self.figure = Figure(figsize=(6, 4), dpi=100)
+            self.figure = get_plot(pandas.DataFrame([1,2,3,4]))
+            self.canvas = FigureCanvasTkAgg(self.figure, self.graph)
+            self.canvas.get_tk_widget().pack()
     
-    ourMessage ='This is our Message'
-    messageVar = Message(topframe, text = ourMessage, width=180)
-    
-    button_frame = Frame(topframe)
-    redbutton = Button(button_frame, text = 'Red', fg ='red')
-    order_button = ttk.Button(button_frame, text='Order', width=10, command=root.destroy)
+          
+    def draw_head_frame(self):
+        self.headframe = Frame(self)
 
+        self.label_ai = Label(self.headframe, text='AI Invest')
+        
+        ourMessage ='This is our Message'
+        self.messageVar = Message(self.headframe, text = ourMessage, width=180)
+        
+        self.button_frame = Frame(self.headframe)
+        self.redbutton = Button(self.button_frame, text = 'Red', fg ='red')
+        self.order_button = ttk.Button(self.button_frame, text='Order', width=10, command=root.destroy)
 
-    # these lines are binding mouse buttons with the button widget
-    redbutton.bind('<Button-2>', pressed2)
-    redbutton.bind('<Button-3>', pressed3)
-    redbutton.bind('<Double 1>', double_click)
+        # these lines are binding mouse buttons with the button widget
+        self.redbutton.bind('<Button-2>', self.pressed2)
+        self.redbutton.bind('<Button-3>', self.pressed3)
+        self.redbutton.bind('<Double 1>', self.double_click)
 
-    
-    symbol_frame = Frame(topframe)
-    # creating Combobox
-    combo_box = ttk.Combobox(symbol_frame)
-    combo_box['values'] = lst
-    combo_box.bind('<KeyRelease>', check_input)
+        self.symbol_frame = Frame(self.headframe)
 
-    scrollbar = Scrollbar(symbol_frame)
-    symbol_list_box = Listbox(symbol_frame, yscrollcommand = scrollbar.set )
+        self.scrollbar = Scrollbar(self.symbol_frame)
+        self.symbol_list_box = Listbox(self.symbol_frame, yscrollcommand = self.scrollbar.set )
 
-    symbol_list = Aiconfig.get("ASSET_LIST")
-    i = 0
-    for line in symbol_list:
-        symbol_list_box.insert(i, line)
-        i += 1
-    symbol_list_box.bind('<Double-1>', select_symbol) 
-    scrollbar.config( command = symbol_list_box.yview )
+        self.symbol_list = Aiconfig.get("ASSET_LIST")
+        i = 0
+        for line in self.symbol_list:
+            self.symbol_list_box.insert(i, line)
+            i += 1
 
-    message_frame = Frame(root)
-    
-    message_area = ScrolledText(message_frame,foreground="yellow", background='green')
+        self.symbol_list_box.bind('<Double-1>', self.select_symbol) 
+        self.scrollbar.config( command = self.symbol_list_box.yview )
+
+        # creating Combobox
+        self. combo_box = ttk.Combobox(self.symbol_frame)
+        self.combo_box['values'] = self.symbol_list
+        self.combo_box.bind('<KeyRelease>', self.check_input)
+
+    def draw_message_frame(self):
+        self.message_frame = Frame(self)
+        self.message_area = ScrolledText(self.message_frame,foreground="yellow", background='green')
 
     # add a terminal to the application
     # terminal = Terminal(pady=5, padx=5, background='green', height=10)
@@ -159,51 +222,46 @@ def main():
     # terminal.configure(foreground='yellow')
     # terminal.basename = "AI$"
 
+    def layout(self):
+        ############# layout start here.
+        self.headframe.pack(side=TOP,fill="x")
+        self.label_ai.pack(side = 'top')
+        # self.messageVar.pack(side = 'bottom')
+        self.button_frame.pack(side='left')
+        self.symbol_frame.pack(side = 'right')
 
-    ############# layout start here.
-    topframe.pack(side=TOP,fill="x")
-    label_ai.pack(side = 'top')
-    messageVar.pack(side = 'bottom')
-    button_frame.pack(side='left')
-    symbol_frame.pack(side = 'right')
+        self.combo_box.pack(side = 'top')
+        self.scrollbar.pack( side = 'bottom', fill = Y )
+        # self.symbol_list_box.pack( side = 'bottom', fill = BOTH )
+        self.symbol_list_box.pack( side = 'bottom' )
 
-    combo_box.pack(side = 'top')
-    scrollbar.pack( side = 'bottom', fill = Y )
-    symbol_list_box.pack( side = 'bottom', fill = BOTH )
+        self.redbutton.pack( side = 'top')
+        self.order_button.pack(side = 'bottom')
 
-    redbutton.pack( side = 'top')
-    order_button.pack(side = 'bottom')
+        self.graph.pack(side = "top")
+        # self.dataPlot.get_tk_widget().pack(side=TOP, fill="y", expand=1)
 
+        self.message_frame.pack(side='bottom')
+        self.message_area.pack()
 
-    dataPlot.get_tk_widget().pack(side=TOP, fill="y", expand=1)
+    def style(self):
+        ############# style : add styling to any widget which are available 
+        style = ttk.Style() 
+        style.configure('TButton', foreground = 'green') 
+        self.symbol_list_box.configure(foreground='orange')
+        self.configure(background='lightblue')
+        self.messageVar.config(bg='lightgreen')
 
-    message_frame.pack(side='bottom')
-    message_area.pack()
+    # def _action(self):
+    #     # add righ click menu to the app. those menu could bind different command.
+    #     self.right_click_menu = RightClickMenu(self)
+        
+    #     # For most mice, this will be '1' for left button, '2' for middle, '3' for right.
+    #     self.bind("<Button-2>", self.right_click_menu.do_popup) 
 
+    #     # here we are binding keyboard with the main window
+    #     self.bind('<Key>', self.key_press)
 
-    ############# style : add styling to any widget which are available 
-    style = ttk.Style() 
-    style.configure('TButton', foreground = 'green') 
-    symbol_list_box.configure(foreground='orange')
-    root.configure(background='lightblue')
-    messageVar.config(bg='lightgreen')
-
-    # add righ click menu to the app. those menu could bind different command.
-    m = Menu(root, tearoff = 0) 
-    m.add_command(label ="Cut") 
-    m.add_command(label ="Copy") 
-    m.add_command(label ="Paste") 
-    m.add_command(label ="Reload") 
-    m.add_separator() 
-    m.add_command(label ="Rename") 
-    
-    # For most mice, this will be '1' for left button, '2' for middle, '3' for right.
-    root.bind("<Button-2>", do_popup) 
-
-    # here we are binding keyboard with the main window
-    root.bind('<Key>', key_press)
-
-    root.mainloop()
 
 
 
@@ -237,6 +295,30 @@ def main():
     # a message will be prompted
     # root.after(5000, lambda : messagebox.showinfo('Title', 'Prompting after 5 seconds'))
 
+# function to be called when keyboard buttons are pressed
+def key_press(event):
+    
+    key = event.char
+    print(key, 'is pressed')
+    print(event, 'event')
+    display_message(str(event), mainframe.message_area)
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    root = tk.Tk()
+    root.geometry('800x800')
+    root.wm_title('AI Investment')
+
+    mainframe = AIGUIFrame(root)
+
+    # create menu of the application
+    menu = AiGUIMenu(root)
+
+    # add righ click menu to the app. those menu could bind different command.
+    right_click_menu = RightClickMenu(root)
+    # For most mice, this will be '1' for left button, '2' for middle, '3' for right.
+    root.bind("<Button-2>", right_click_menu.do_popup) 
+
+
+    root.bind('<Key>', key_press)
+    # app = AiGUI(master=root)
+    root.mainloop()
