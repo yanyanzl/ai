@@ -145,7 +145,9 @@ def initialize_settings_data():
         'SHOW_SUMMARY' : ['key.shift', 's'],
 
         'BUY_LMT_PLUS' : 0.05,
-        'SELL_LMT_PLUS' : -0.05
+        'SELL_LMT_PLUS' : -0.05,
+
+        'LOGGING_FILE_NAME' : "log/log.txt"
 
         }
     

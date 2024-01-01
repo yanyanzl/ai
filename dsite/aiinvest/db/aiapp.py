@@ -17,6 +17,7 @@ from ibapi.common import * # @UnusedWildImport
 from ibapi.utils import * # @UnusedWildImport
 from aiorder import *
 from aisettings import Aiconfig
+from aitools import *
 
 # BUY_LMT_PLUS = 0.05
 
@@ -31,9 +32,9 @@ class AiWrapper(EWrapper):
     # The API treats many items as errors even though they are not.
     def error(self, reqId, errorCode, errorMsg="", advancedOrderRejectJson=""):
         super().error(reqId, errorCode, errorMsg, advancedOrderRejectJson)
-
+        display_message(f'order canceled - Reason , {errorMsg}')
         if errorCode == 202:
-            print('order canceled - Reason ', errorMsg) 
+            display_message(f'order canceled - Reason , {errorMsg}') 
         # else:
         #     print(f'errorcode {errorCode}, error message: {errorMsg}')
 

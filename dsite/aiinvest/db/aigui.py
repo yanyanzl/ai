@@ -16,6 +16,7 @@ from tkinter import ttk
 from tkterminal import Terminal
 from tkinter import messagebox
 from aisettings import Aiconfig
+from aitools import *
 
 # from matplotlib import colormaps
 # print(list(colormaps))
@@ -66,7 +67,7 @@ def main():
         print(symbol_list_box.selection_get())
 
         # the event , like : <ButtonPress event num=1 x=35 y=48>
-        print(f"event: {event}")
+        display_message(str(event), message_area)
 
 
     def do_popup(event): 
@@ -82,6 +83,7 @@ def main():
         key = event.char
         print(key, 'is pressed')
         print(event, 'event')
+        display_message(str(event), message_area)
 
     root = Tk()
     '''
@@ -112,24 +114,31 @@ def main():
     dataPlot = FigureCanvasTkAgg(f, master=root)
 
     topframe = Frame(root)
-    redbutton = Button(topframe, text = 'Red', fg ='red')
-    greenbutton = Button(topframe, text = 'Brown', fg='brown')
-    bluebutton = Button(topframe, text ='Blue', fg ='blue')
+
     label_ai = Label(topframe, text='AI Invest')
+    
+    ourMessage ='This is our Message'
+    messageVar = Message(topframe, text = ourMessage, width=180)
+    
+    button_frame = Frame(topframe)
+    redbutton = Button(button_frame, text = 'Red', fg ='red')
+    order_button = ttk.Button(button_frame, text='Order', width=10, command=root.destroy)
+
 
     # these lines are binding mouse buttons with the button widget
     redbutton.bind('<Button-2>', pressed2)
     redbutton.bind('<Button-3>', pressed3)
     redbutton.bind('<Double 1>', double_click)
 
+    
+    symbol_frame = Frame(topframe)
     # creating Combobox
-    combo_box = ttk.Combobox(topframe)
+    combo_box = ttk.Combobox(symbol_frame)
     combo_box['values'] = lst
     combo_box.bind('<KeyRelease>', check_input)
 
-    middleframe = Frame(root)
-    scrollbar = Scrollbar(middleframe)
-    symbol_list_box = Listbox(middleframe, yscrollcommand = scrollbar.set )
+    scrollbar = Scrollbar(symbol_frame)
+    symbol_list_box = Listbox(symbol_frame, yscrollcommand = scrollbar.set )
 
     symbol_list = Aiconfig.get("ASSET_LIST")
     i = 0
@@ -139,45 +148,37 @@ def main():
     symbol_list_box.bind('<Double-1>', select_symbol) 
     scrollbar.config( command = symbol_list_box.yview )
 
+    message_frame = Frame(root)
+    
+    message_area = ScrolledText(message_frame,foreground="yellow", background='green')
 
-    bottomframe = Frame(root)
-    order_button = ttk.Button(bottomframe, text='Order', width=25, command=root.destroy)
-    ourMessage ='This is our Message'
-    messageVar = Message(bottomframe, text = ourMessage, width=180)
-    messageVar.config(bg='lightgreen')
-
-    # import os
-    # term_frame = Frame(root, height=100, width=500)
-
-    # term_frame.pack(side='bottom', fill=BOTH, expand=YES)
-    # wid = term_frame.winfo_id()
-    # # os.system('xterm -into %d -geometry 40x20 -sb &' % wid)    
-    # os.system('sh -into %d' % wid) 
-    terminal = Terminal(pady=5, padx=5, background='green', height=10)
-    terminal.pack(side='bottom', expand=True, fill='both')
-    terminal.shell = True
-    terminal.configure(foreground='yellow')
-    terminal.basename = "AI$"
-    # terminal.linebar = True
+    # add a terminal to the application
+    # terminal = Terminal(pady=5, padx=5, background='green', height=10)
+    # terminal.pack(side='bottom', expand=True, fill='both')
+    # terminal.shell = True
+    # terminal.configure(foreground='yellow')
+    # terminal.basename = "AI$"
 
 
     ############# layout start here.
     topframe.pack(side=TOP,fill="x")
     label_ai.pack(side = 'top')
-    redbutton.pack( side = LEFT)
-    greenbutton.pack( side = LEFT )
-    bluebutton.pack( side = RIGHT )
-    combo_box.pack(side = 'right')
+    messageVar.pack(side = 'bottom')
+    button_frame.pack(side='left')
+    symbol_frame.pack(side = 'right')
 
-    middleframe.pack(side = 'right')
-    scrollbar.pack( side = RIGHT, fill = Y )
-    symbol_list_box.pack( side = 'right', fill = BOTH )
+    combo_box.pack(side = 'top')
+    scrollbar.pack( side = 'bottom', fill = Y )
+    symbol_list_box.pack( side = 'bottom', fill = BOTH )
+
+    redbutton.pack( side = 'top')
+    order_button.pack(side = 'bottom')
+
 
     dataPlot.get_tk_widget().pack(side=TOP, fill="y", expand=1)
 
-    bottomframe.pack( side = 'bottom' )
-    order_button.pack(side = 'left')
-    messageVar.pack(side = 'bottom')
+    message_frame.pack(side='bottom')
+    message_area.pack()
 
 
     ############# style : add styling to any widget which are available 
@@ -185,6 +186,7 @@ def main():
     style.configure('TButton', foreground = 'green') 
     symbol_list_box.configure(foreground='orange')
     root.configure(background='lightblue')
+    messageVar.config(bg='lightgreen')
 
     # add righ click menu to the app. those menu could bind different command.
     m = Menu(root, tearoff = 0) 
