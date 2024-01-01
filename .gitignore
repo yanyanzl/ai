@@ -8,6 +8,8 @@ cache.sqlite
 # C extensions
 *.so
 log/
+log.txt
+
 # Distribution / packaging
 .Python
 build/
