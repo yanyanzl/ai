@@ -43,17 +43,20 @@ from ibapi.order import Order
 from decimal import Decimal
 
 
-def lmt_order(price="", action:str="", quantity:int=10, tif:str='DAY'):
+def lmt_order(price:float=0, action:str="", quantity:int=10, tif:str='DAY'):
     """
     build a limit order
     """
-    if action!="" and price != "" and quantity > 0:
+    print("price: ", price, "action: ", action, "quantity:", quantity, "tif:", tif)
+
+    if action!="" and price and float(price) > 0 and quantity > 0:
         order = Order()
         order.action = action
         order.totalQuantity = quantity
         order.tif = tif
         order.orderType = 'LMT'
-        order.lmtPrice = price
+        order.lmtPrice = float(price)
+        print("order...", order)
         return order
     else:
          raise ValueError(f"invalid  price target {price}, action {action}  or quantity {quantity}  in lmt_order()!")

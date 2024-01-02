@@ -2,7 +2,8 @@
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 from aisettings import Aiconfig
-import pathlib
+import logging
+import threading
 
 LOGGING_FILE_NAME = Aiconfig.get('LOGGING_FILE_NAME')
 
@@ -28,14 +29,13 @@ def display_message(message:str, st:ScrolledText=None):
 
 # display_message("x lines now ...")
 
-import logging
-logging.basicConfig(filename='log/ailog.log', encoding='utf-8', level=logging.DEBUG)
-logging.debug('This message should go to the log file')
-logging.info('So should this')
-logging.warning('And this, too')
-logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
 
-import threading
+logging.basicConfig(filename='log/ailog.log', encoding='utf-8', level=logging.DEBUG)
+# logging.debug('This message should go to the log file')
+# logging.info('So should this')
+# logging.warning('And this, too')
+# logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
+
 
 class StoppableThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check

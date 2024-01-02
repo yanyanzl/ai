@@ -67,6 +67,7 @@ SHOW_PORT:
 SHOW_SUMMARY:
 - key.shift
 - s
+SYMBOL_CHANGED: SYMBOL_CHANGED
 TICK_BIDASK:
 - key.shift
 - t

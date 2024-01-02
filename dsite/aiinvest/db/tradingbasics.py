@@ -49,6 +49,7 @@ def change_current_Contract(app=AiApp()):
     """
     try:
         if app.isConnected():
+
             while True:
                 contractType = input("Input F (for FX) or S (for Stock):")
                 if any([contractType.lower() in ['f','s']]):
@@ -73,30 +74,39 @@ def change_current_Contract(app=AiApp()):
     except Exception as ex:
         print("failed to change current contract. invalid input.")
 
-def show_current_Contract(app=AiApp(),q:queue.Queue=None):
+def show_current_Contract(app=AiApp()):
     """ show the current contract in the current AiApp instance. 
     """
+    message = ""
     if app.isConnected() and app.currentContract:
-        print(f"current contract is ... \n {app.currentContract}")
-        if q and isinstance(q, queue.Queue):
-            q.put(f"current contract is ... \n {app.currentContract}")
+        message = f"current contract is :{app.currentContract}"
 
     else:
-        print(f"show current contract failed.connected: {app.isConnected()}. current contract {app.currentContract}")
+        message = f"show current contract failed.connected: {app.isConnected()}. current contract {app.currentContract}"
+
+    print(message)
+    if AiApp.has_message_queue():
+        AiApp.message_q.put(message)
 
 from aigui import *
 
 
 def main():
 
-    q = queue.Queue()
+    message_q = queue.Queue()
+
     def worker():
         while True:
-            item = q.get()
+            item = message_q.get()
             # print(f'Working on {item}')
-            display_message(str(item),mainframe.message_area)
+            if item:
+                if mainframe:
+                    display_message(str(item),mainframe.message_area)
+                if str(item) == Aiconfig.get("SYMBOL_CHANGED"):
+                    if app and mainframe:
+                        app.set_current_Contract(stock_contract(mainframe.symbol_selected))
             # print(f'Finished {item}')
-            q.task_done()
+            message_q.task_done()
 
     # Turn-on the worker thread.
     que_thread = StoppableThread(target=worker, daemon=True)
@@ -117,9 +127,10 @@ def main():
     def key_press(event):
         
         # key = event.char
-        keysymbol = str(event.keysym).lower().strip('_l').strip('_r')
+        keysymbol = str(event.keysym).lower()
+        
         if len(keysymbol) > 1:
-            keysymbol = "key."+keysymbol
+            keysymbol = "key."+keysymbol.strip('_l').strip('_r')
         # print(key, 'is pressed')
         print(keysymbol, 'is pressed')
         # display_message(str(event), mainframe.message_area)
@@ -128,9 +139,10 @@ def main():
 
     def key_release(event):
         # key = event.char
-        keysymbol = str(event.keysym).lower().strip('_l').strip('_r')
+        keysymbol = str(event.keysym).lower()
+        
         if len(keysymbol) > 1:
-            keysymbol = "key."+keysymbol
+            keysymbol = "key."+keysymbol.strip('_l').strip('_r')
         # print(key, 'is pressed')
         print(keysymbol, 'is released')
         # display_message(str(event), mainframe.message_area)
@@ -163,10 +175,9 @@ def main():
 
 ####### create GUI part  --------------------- end
 
-
     app = AiApp()
     print("program is starting ...")
-    app.connect('127.0.0.1', 7497, 29)
+    app.connect('127.0.0.1', 7497, 36)
     # app.connect('192.168.1.146', 7497, 1)
     
     print(app.isConnected())
@@ -200,9 +211,6 @@ def main():
 
     app.set_current_Contract(stock_contract("AAPL"))
 
-    #Request Market Data. should be in market open time.
-    app.reqMarketDataType(1) # -1 is real time stream. 3 is delayed data.
-    app.reqMktData(1, app.currentContract, '', True, False, [])
     # time.sleep(2)
 
 
@@ -212,7 +220,7 @@ def main():
 
     def on_press(key):
         try:
-            
+            message = ""
             # print('alphanumeric key pressed', key.char.lower())
             # change object key to lower string case without quotation mark.
             key = str(key).lower().strip("'")
@@ -244,11 +252,12 @@ def main():
                     combo_key.clear()
 
             elif key == Aiconfig.get('CHANGE_CONTRACT'):
-                print("change current contract...")
+                message = "change current contract..."
+                print(message)
                 change_current_Contract(app)
             
             elif key == Aiconfig.get('SHOW_CURRENT_CONTRACT'):
-                show_current_Contract(app,q)
+                show_current_Contract(app)
 
             # cancel all orders
             elif any([key in Aiconfig.get('CANCEL_ALL_ORDER')]): # Checks if pressed key is in any combinations
@@ -279,21 +288,24 @@ def main():
             elif any([key in Aiconfig.get('REQ_OPEN_ORDER')]): #  Requests all current open orders in associated accounts at the current moment. The existing orders will be received via the openOrder and orderStatus events. Open orders are returned once; this function does not initiate a subscription.
                 combo_key.add(key)
                 if all (k in combo_key for k in Aiconfig.get('REQ_OPEN_ORDER')): # Checks if every key of the combination has been pressed
-                    print("requesting all Open orders from server now ...")
+                    message = "requesting all Open orders from server now ..."
+                    print(message)
                     app.reqAllOpenOrders()
                     combo_key.clear()
 
             elif any([key in Aiconfig.get('TICK_BIDASK')]): 
                 combo_key.add(key)
                 if all (k in combo_key for k in Aiconfig.get('TICK_BIDASK')): # Checks if every key of the combination has been pressed
-                    print("requesting tick by tick bidask data from server now ...")
+                    message = f"requesting tick by tick bidask data from server for {app.currentContract} now ..."
+                    print()
                     app.reqTickByTickData(19003, app.currentContract, "BidAsk", 0, True)
                     combo_key.clear()
 
             elif any([key in Aiconfig.get('CANCEL_TICK_BIDASK')]): 
                 combo_key.add(key)
                 if all (k in combo_key for k in Aiconfig.get('CANCEL_TICK_BIDASK')): # Checks if every key of the combination has been pressed
-                    print("cancelling tick by tick bidask data from server now ...")
+                    message = "cancelling tick by tick bidask data from server now ..."
+                    print(message)
                     app.cancelTickByTickData(19003)
                     combo_key.clear()
 
@@ -306,13 +318,14 @@ def main():
             elif any([key in Aiconfig.get('SHOW_SUMMARY')]): 
                 combo_key.add(key)
                 if all (k in combo_key for k in Aiconfig.get('SHOW_SUMMARY')): # Checks if every key of the combination has been pressed
-                    show_summary(app,q)
+                    show_summary(app)
                     combo_key.clear()
 
             elif any([key in Aiconfig.get('REQUIRE_REALTIME_BAR')]): 
                 combo_key.add(key)
                 if all (k in combo_key for k in Aiconfig.get('REQUIRE_REALTIME_BAR')): 
-                    print("requesting real time Bars data from server now ...")
+                    message = "requesting real time Bars data from server now ..."
+                    print(message)
                     # whatToShow	the nature of the data being retrieved: TRADES, MIDPOINT, BID, ASK
                     app.reqRealTimeBars(19002,app.currentContract,1,"TRADES", 0,[])
                     combo_key.clear() 
@@ -320,7 +333,8 @@ def main():
             elif any([key in Aiconfig.get('CANCEL_REALTIME_BAR')]): 
                 combo_key.add(key)
                 if all (k in combo_key for k in Aiconfig.get('CANCEL_REALTIME_BAR')): 
-                    print("cancalling real time Bars data from server now ...")
+                    message = "cancalling real time Bars data from server now ..."
+                    print(message)
                     app.cancelRealTimeBars(19002)
                     combo_key.clear()        
 
@@ -328,30 +342,25 @@ def main():
                  if DEBUG:
                      pass
                     #print(f"{key} is not defined for any function now ...")
+            if message and AiApp.has_message_queue():
+                AiApp.message_q.put(message)
 
         except AttributeError:
-            print('special key {0} pressed'.format(
-                key))
+            message = 'special key {0} pressed'.format(key)
+            print(message)
 
     def on_release(key):
         # print('{0} released'.format(key))
         # change object key to lower string case without quotation mark.
         key = str(key).lower().strip("'")
-
+        message = ""
         if key == 'key.esc' or key == 'key.escape':
             # Stop listener
-            print("Stopping Listener...")
-            
+            message = "Stopping Listener..."
+            print(message)
+            if AiApp.has_message_queue():
+                AiApp.message_q.put(message)
             exit_app()
-            # Once the subscription to account updates is no longer needed, it can be cancelled by invoking the IBApi.EClient.reqAccountUpdates method while specifying the susbcription flag to be False.
-            # app.reqAccountUpdates(False, app.account)
-            # time.sleep(1) 
-            # print("Exiting Program...")
-            # app.disconnect()
-            # root.destroy()
-            # import _thread
-            # os._exit(1)
-            # _thread.interrupt_main() 
             return False # return False to the call thread. it will terminate the thread
         
         # in case only part of the key pressed. those key should be removed from combo_key.
@@ -372,6 +381,7 @@ def main():
     # on_release=on_release)
     # listener.start()
     ################ keyboard input monitoring part end
+    AiApp.message_q = message_q
     root.mainloop()
 
 

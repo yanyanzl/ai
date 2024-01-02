@@ -147,7 +147,8 @@ def initialize_settings_data():
         'BUY_LMT_PLUS' : 0.05,
         'SELL_LMT_PLUS' : -0.05,
 
-        'LOGGING_FILE_NAME' : "log/log.txt"
+        'LOGGING_FILE_NAME' : "log/log.txt",
+        'SYMBOL_CHANGED' : 'SYMBOL_CHANGED'
 
         }
     

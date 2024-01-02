@@ -20,6 +20,7 @@ from tkterminal import Terminal
 from tkinter import messagebox
 from aisettings import Aiconfig
 from aitools import *
+from aiapp import AiApp
 
 import tkinter as tk
 
@@ -100,6 +101,7 @@ class AIGUIFrame(tk.Frame):
         self.message_area = None
         self.symbol_list_box = None
         self.initialized = False
+        self.symbol_selected = ""
 
         self.draw_head_frame()
         self.draw_graph_frame()
@@ -139,10 +141,14 @@ class AIGUIFrame(tk.Frame):
 
         cs = self.symbol_list_box.curselection() 
         # the index of the selected element in the list
-        print(self.symbol_list_box.curselection())
+        print(cs)
 
         # the selected element
-        print(self.symbol_list_box.selection_get())
+        self.symbol_selected = self.symbol_list_box.selection_get()
+        if AiApp.has_message_queue():
+            AiApp.message_q.put(Aiconfig.get("SYMBOL_CHANGED"))
+        print(self.symbol_selected)
+
 
         # the event , like : <ButtonPress event num=1 x=35 y=48>
         display_message(str(event), self.message_area)
