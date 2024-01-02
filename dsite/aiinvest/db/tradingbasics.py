@@ -19,8 +19,10 @@ import time
 from aiapp import *
 from aiorder import *
 from aicontract import *
+import queue
 
 DEBUG = Aiconfig.get('DEBUG')
+
 
 # MULTIPLY = KeyCode(char="*")
 
@@ -71,18 +73,94 @@ def change_current_Contract(app=AiApp()):
     except Exception as ex:
         print("failed to change current contract. invalid input.")
 
-def show_current_Contract(app=AiApp()):
+def show_current_Contract(app=AiApp(),q:queue.Queue=None):
     """ show the current contract in the current AiApp instance. 
     """
     if app.isConnected() and app.currentContract:
         print(f"current contract is ... \n {app.currentContract}")
+        if q and isinstance(q, queue.Queue):
+            q.put(f"current contract is ... \n {app.currentContract}")
+
     else:
         print(f"show current contract failed.connected: {app.isConnected()}. current contract {app.currentContract}")
 
+from aigui import *
+
+
 def main():
 
-    def run_loop():
-        app.run()
+    q = queue.Queue()
+    def worker():
+        while True:
+            item = q.get()
+            # print(f'Working on {item}')
+            display_message(str(item),mainframe.message_area)
+            # print(f'Finished {item}')
+            q.task_done()
+
+    # Turn-on the worker thread.
+    threading.Thread(target=worker, daemon=True).start()
+
+    def exit_app():
+        # Once the subscription to account updates is no longer needed, it can be cancelled by invoking the IBApi.EClient.reqAccountUpdates method while specifying the susbcription flag to be False.
+        app.reqAccountUpdates(False, app.account)
+        time.sleep(1) 
+        print("Exiting Program...")
+        app.disconnect()
+        api_thread.stop()
+        # listener.stop()
+        root.destroy()
+
+    # function to be called when keyboard buttons are pressed
+    def key_press(event):
+        
+        # key = event.char
+        keysymbol = str(event.keysym).lower().strip('_l').strip('_r')
+        if len(keysymbol) > 1:
+            keysymbol = "key."+keysymbol
+        # print(key, 'is pressed')
+        print(keysymbol, 'is pressed')
+        # display_message(str(event), mainframe.message_area)
+        display_message(keysymbol, mainframe.message_area)
+        on_press(keysymbol)
+
+    def key_release(event):
+        # key = event.char
+        keysymbol = str(event.keysym).lower().strip('_l').strip('_r')
+        if len(keysymbol) > 1:
+            keysymbol = "key."+keysymbol
+        # print(key, 'is pressed')
+        print(keysymbol, 'is released')
+        # display_message(str(event), mainframe.message_area)
+        # display_message(keysymbol, mainframe.message_area)
+        on_release(keysymbol)
+
+####### create GUI part  --------------------- start
+    root = tk.Tk()
+    # root.geometry('800x800')
+    root.wm_title('AI Investment')
+
+    mainframe = AIGUIFrame(root)
+    mainframe.order_button.configure(command=exit_app)
+
+
+    # create menu of the application
+    menu = AiGUIMenu(root)
+    menu.filemenu.add_command(label='Exit', command=exit_app)
+
+    # Tkinter supports a mechanism called protocol handlers. Here, the term protocol refers to the interaction between the application and the window manager. The most commonly used protocol is called WM_DELETE_WINDOW, and is used to define what happens when the user explicitly closes a window using the window manager.
+    root.protocol("WM_DELETE_WINDOW", exit_app)
+    # add righ click menu to the app. those menu could bind different command.
+    right_click_menu = RightClickMenu(root)
+    # For most mice, this will be '1' for left button, '2' for middle, '3' for right.
+    root.bind("<Button-2>", right_click_menu.do_popup) 
+
+    root.bind('<Key>', key_press)
+    root.bind('<KeyRelease>', key_release)
+
+
+####### create GUI part  --------------------- end
+
 
     app = AiApp()
     print("program is starting ...")
@@ -94,8 +172,9 @@ def main():
     app.nextorderId = None
     
     #Start the socket in a thread
-    api_thread = threading.Thread(target=run_loop, daemon=True)
+    api_thread = StoppableThread(target=app.run, daemon=True)
     api_thread.start()
+    
 
     #Check if the API is connected via orderid
     while True:
@@ -167,7 +246,7 @@ def main():
                 change_current_Contract(app)
             
             elif key == Aiconfig.get('SHOW_CURRENT_CONTRACT'):
-                show_current_Contract(app)
+                show_current_Contract(app,q)
 
             # cancel all orders
             elif any([key in Aiconfig.get('CANCEL_ALL_ORDER')]): # Checks if pressed key is in any combinations
@@ -225,7 +304,7 @@ def main():
             elif any([key in Aiconfig.get('SHOW_SUMMARY')]): 
                 combo_key.add(key)
                 if all (k in combo_key for k in Aiconfig.get('SHOW_SUMMARY')): # Checks if every key of the combination has been pressed
-                    show_summary(app)
+                    show_summary(app,q)
                     combo_key.clear()
 
             elif any([key in Aiconfig.get('REQUIRE_REALTIME_BAR')]): 
@@ -257,16 +336,21 @@ def main():
         # change object key to lower string case without quotation mark.
         key = str(key).lower().strip("'")
 
-        if key == 'key.esc':
+        if key == 'key.esc' or key == 'key.escape':
             # Stop listener
             print("Stopping Listener...")
-
+            
+            exit_app()
             # Once the subscription to account updates is no longer needed, it can be cancelled by invoking the IBApi.EClient.reqAccountUpdates method while specifying the susbcription flag to be False.
-            app.reqAccountUpdates(False, app.account)
-            time.sleep(1) 
-            print("Exiting Program...")
-            app.disconnect()
-            return False
+            # app.reqAccountUpdates(False, app.account)
+            # time.sleep(1) 
+            # print("Exiting Program...")
+            # app.disconnect()
+            # root.destroy()
+            # import _thread
+            # os._exit(1)
+            # _thread.interrupt_main() 
+            return False # return False to the call thread. it will terminate the thread
         
         # in case only part of the key pressed. those key should be removed from combo_key.
         elif any([key in combo_key]):
@@ -281,11 +365,13 @@ def main():
     # Call pynput.keyboard.Listener.stop from anywhere, raise StopException or return False from a callback to stop the listener.
     # The key parameter passed to callbacks is a pynput.keyboard.Key, for special keys, a pynput.keyboard.KeyCode for normal alphanumeric keys, or just None for unknown keys.
     # When using the non-blocking version above, the current thread will continue executing. This might be necessary when integrating with other GUI frameworks that incorporate a main-loop, but when run from a script, this will cause the program to terminate immediately.
-    listener = keyboard.Listener(
-    on_press=on_press,
-    on_release=on_release)
-    listener.start()
+    # listener = keyboard.Listener(
+    # on_press=on_press,
+    # on_release=on_release)
+    # listener.start()
     ################ keyboard input monitoring part end
-    
+    root.mainloop()
+
+
 if __name__ == "__main__":
     main()

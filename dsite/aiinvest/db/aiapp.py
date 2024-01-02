@@ -261,12 +261,14 @@ def show_portforlio(app=AiApp()):
         print('show portforlio failed. No connection ...')
 
 # show the current account summary 
-def show_summary(app=AiApp()):
+def show_summary(app=AiApp(),q:queue.Queue=None):
 
     if app.isConnected():
         print(f'current portforlio for account{app.account} are showing below ... \n')
         print("Account info in the Show List are : \n", app.account_info.loc[app.account_info['key'].isin(Aiconfig.get('ACCOUNT_INFO_SHOW_LIST'))])
-
+        if q and isinstance(q, queue.Queue):
+             q.put(f'current portforlio for account{app.account} are showing below ... \n')
+             q.put(f"Account info in the Show List are : \n {app.account_info.loc[app.account_info['key'].isin(Aiconfig.get('ACCOUNT_INFO_SHOW_LIST'))]}")
     else:
         print('show account summary failed. No connection ...')
 

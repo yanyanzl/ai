@@ -3,6 +3,11 @@
 Copyright (C) Steven Jiang. All rights reserved. This code is subject to the terms
  and conditions of the MIT Non-Commercial License, as applicable.
 build the GUI for ai trading
+
+Tkinter isn't thread safe, and the general consensus is that Tkinter doesn't work in a non-main thread
+The main caveat is that the workers cannot interact with the Tkinter widgets. They will have to write data to a queue, and your main GUI thread will have to poll that queue.
+
+
 """
 
 from tkinter import *
@@ -52,7 +57,7 @@ class AiGUIMenu(tk.Frame):
         self.filemenu.add_command(label='New')
         self.filemenu.add_command(label='Open...')
         self.filemenu.add_separator()
-        self.filemenu.add_command(label='Exit', command=root.quit)
+        # self.filemenu.add_command(label='Exit', command=self.master.destroy)
         self.helpmenu = Menu( self.menu)
         self.menu.add_cascade(label='Help', menu=self.helpmenu)
         self.helpmenu.add_command(label='About')
@@ -143,15 +148,6 @@ class AIGUIFrame(tk.Frame):
         display_message(str(event), self.message_area)
 
 
-    # function to be called when keyboard buttons are pressed
-    def key_press(self, event):
-        
-        key = event.char
-        print(key, 'is pressed')
-        print(event, 'event')
-        display_message(str(event), self.message_area)
-
-
     def plot_graph(self, data=pandas.DataFrame([1,2,3,4])):
 
         # destroy previous one
@@ -185,7 +181,7 @@ class AIGUIFrame(tk.Frame):
         
         self.button_frame = Frame(self.headframe)
         self.redbutton = Button(self.button_frame, text = 'Red', fg ='red')
-        self.order_button = ttk.Button(self.button_frame, text='Order', width=10, command=root.destroy)
+        self.order_button = ttk.Button(self.button_frame, text='Order', width=10)
 
         # these lines are binding mouse buttons with the button widget
         self.redbutton.bind('<Button-2>', self.pressed2)
@@ -213,7 +209,7 @@ class AIGUIFrame(tk.Frame):
 
     def draw_message_frame(self):
         self.message_frame = Frame(self)
-        self.message_area = ScrolledText(self.message_frame,foreground="yellow", background='green')
+        self.message_area = ScrolledText(self.message_frame, foreground="yellow", background='green')
 
     # add a terminal to the application
     # terminal = Terminal(pady=5, padx=5, background='green', height=10)
@@ -270,14 +266,6 @@ class AIGUIFrame(tk.Frame):
     canvas.create_rectangle(30,30,100,100)
     canvas.pack()
 
-    var1 = tk.IntVar()
-    checkbox1 = tk.Checkbutton(root, text='male', variable=var1)
-    checkbox1.pack()
-
-    var2 = tk.IntVar()
-    checkbox2 = tk.Checkbutton(root, text='female', variable=var2)
-    checkbox2.pack()
-
     #   grid
     var1 = tk.IntVar()
     tk.Checkbutton(root, text='male', variable=var1).grid(row=0, sticky='W')
@@ -295,17 +283,9 @@ class AIGUIFrame(tk.Frame):
     # a message will be prompted
     # root.after(5000, lambda : messagebox.showinfo('Title', 'Prompting after 5 seconds'))
 
-# function to be called when keyboard buttons are pressed
-def key_press(event):
-    
-    key = event.char
-    print(key, 'is pressed')
-    print(event, 'event')
-    display_message(str(event), mainframe.message_area)
-
 if __name__ == '__main__':
     root = tk.Tk()
-    root.geometry('800x800')
+    # root.geometry('800x800')
     root.wm_title('AI Investment')
 
     mainframe = AIGUIFrame(root)
@@ -319,6 +299,6 @@ if __name__ == '__main__':
     root.bind("<Button-2>", right_click_menu.do_popup) 
 
 
-    root.bind('<Key>', key_press)
+    # root.bind('<Key>', key_press)
     # app = AiGUI(master=root)
     root.mainloop()
