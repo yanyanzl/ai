@@ -99,7 +99,8 @@ def main():
             q.task_done()
 
     # Turn-on the worker thread.
-    threading.Thread(target=worker, daemon=True).start()
+    que_thread = StoppableThread(target=worker, daemon=True)
+    que_thread.start()
 
     def exit_app():
         # Once the subscription to account updates is no longer needed, it can be cancelled by invoking the IBApi.EClient.reqAccountUpdates method while specifying the susbcription flag to be False.
@@ -108,6 +109,7 @@ def main():
         print("Exiting Program...")
         app.disconnect()
         api_thread.stop()
+        que_thread.stop()
         # listener.stop()
         root.destroy()
 
