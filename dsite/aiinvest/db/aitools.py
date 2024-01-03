@@ -8,6 +8,8 @@ import requests
 
 LOGGING_FILE_NAME = Aiconfig.get('LOGGING_FILE_NAME')
 
+
+
 class Message_Area():
     messagearea = ""
     def __init__(self) -> None:
