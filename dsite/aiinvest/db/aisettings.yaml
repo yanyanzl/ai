@@ -19,6 +19,12 @@ ASSET_LIST:
 - AMZN
 - GOOG
 - COIN
+- MSFT
+- DKNG
+- LLY
+- IBM
+- XXXX
+- JPM
 BUY_LMT_PLUS: 0.05
 CANCEL_ALL_ORDER:
 - key.shift
@@ -71,6 +77,7 @@ SYMBOL_CHANGED: SYMBOL_CHANGED
 TICK_BIDASK:
 - key.shift
 - t
+VALIDATION_ADDRESS: https://finance.yahoo.com/quote/
 another dict:
   foo: bar
   key: value

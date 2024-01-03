@@ -114,6 +114,10 @@ class AIGUIFrame(tk.Frame):
     def check_input(self, event):
         value = event.widget.get()
 
+        # change the input string to uppercase
+        self.combo_str.set(self.combo_str.get().upper())
+        print("value", self.combo_str.get())
+
         if value == '':
             self.combo_box['values'] = self.symbol_list
         else:
@@ -121,8 +125,39 @@ class AIGUIFrame(tk.Frame):
             for item in self.symbol_list:
                 if value.lower() in item.lower():
                     data.append(item)
-
+            # print("data is :", data)
             self.combo_box['values'] = data
+            # self.combo_box.current()
+            # self.combo_box.configure(exportselection=True)
+
+    def add_symbol(self, event):
+        value = event.widget.get()
+        message = f"the combox input value is : {value}"
+        valid = True
+        print(message)
+        if value != '':
+            if not value in self.symbol_list:
+                if asset_is_valid(value):
+                    message = message + "it is a valid asset symbol. adding to list below..."
+                    self.symbol_list.append(value)
+                    self.symbol_list_box.insert(len(self.symbol_list), value)
+                    Aiconfig.set("ASSET_LIST", self.symbol_list)
+                    
+                    self.combo_box['values'] = self.symbol_list
+                    
+                else:
+                    message = message + "it's not a valid asset symbol. please input again..."
+                    valid = False
+            self.combo_box.set('') 
+            if valid:
+                self._change_symbol_selected(value)
+        else:
+            message = message + "asset symbol input is empty. please input again..."
+            valid = False
+        if AiApp.has_message_queue():
+            AiApp.message_q.put(message)  
+        return valid
+        
 
     # function to be called when button-2 of mouse is pressed
     def pressed2(event):
@@ -142,16 +177,17 @@ class AIGUIFrame(tk.Frame):
         cs = self.symbol_list_box.curselection() 
         # the index of the selected element in the list
         print(cs)
-
-        # the selected element
-        self.symbol_selected = self.symbol_list_box.selection_get()
-        if AiApp.has_message_queue():
-            AiApp.message_q.put(Aiconfig.get("SYMBOL_CHANGED"))
-        print(self.symbol_selected)
-
-
+        self._change_symbol_selected(self.symbol_list_box.selection_get())
         # the event , like : <ButtonPress event num=1 x=35 y=48>
         display_message(str(event), self.message_area)
+
+    def _change_symbol_selected(self, symbol:str=""):
+        # the selected element
+        if symbol:
+            self.symbol_selected = symbol
+            if AiApp.has_message_queue():
+                AiApp.message_q.put(Aiconfig.get("SYMBOL_CHANGED"))
+            print(self.symbol_selected)
 
 
     def plot_graph(self, data=pandas.DataFrame([1,2,3,4])):
@@ -186,13 +222,8 @@ class AIGUIFrame(tk.Frame):
         self.messageVar = Message(self.headframe, text = ourMessage, width=180)
         
         self.button_frame = Frame(self.headframe)
-        self.redbutton = Button(self.button_frame, text = 'Red', fg ='red')
-        self.order_button = ttk.Button(self.button_frame, text='Order', width=10)
-
-        # these lines are binding mouse buttons with the button widget
-        self.redbutton.bind('<Button-2>', self.pressed2)
-        self.redbutton.bind('<Button-3>', self.pressed3)
-        self.redbutton.bind('<Double 1>', self.double_click)
+        self.redbutton = Button(self.button_frame, text = 'Tick Data', fg ='red')
+        self.order_button = ttk.Button(self.button_frame, text='Exit', width=10)
 
         self.symbol_frame = Frame(self.headframe)
 
@@ -208,10 +239,14 @@ class AIGUIFrame(tk.Frame):
         self.symbol_list_box.bind('<Double-1>', self.select_symbol) 
         self.scrollbar.config( command = self.symbol_list_box.yview )
 
+        self.combo_str = StringVar(self)
         # creating Combobox
-        self. combo_box = ttk.Combobox(self.symbol_frame)
+        self. combo_box = ttk.Combobox(self.symbol_frame,textvariable=self.combo_str)
         self.combo_box['values'] = self.symbol_list
+
         self.combo_box.bind('<KeyRelease>', self.check_input)
+        self.combo_box.bind('<Return>', self.add_symbol)
+        self.combo_box.bind("<<ComboboxSelected>>", self.add_symbol)
 
     def draw_message_frame(self):
         self.message_frame = Frame(self)
@@ -308,3 +343,4 @@ if __name__ == '__main__':
     # root.bind('<Key>', key_press)
     # app = AiGUI(master=root)
     root.mainloop()
+

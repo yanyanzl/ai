@@ -23,10 +23,6 @@ import queue
 
 DEBUG = Aiconfig.get('DEBUG')
 
-
-# MULTIPLY = KeyCode(char="*")
-
-
 # get the histroy data for a contract
 def get_his_data(app=AiApp(),contract=Contract()):
     #Request historical candles
@@ -97,16 +93,17 @@ def main():
 
     def worker():
         while True:
-            item = message_q.get()
-            # print(f'Working on {item}')
-            if item:
-                if mainframe:
-                    display_message(str(item),mainframe.message_area)
-                if str(item) == Aiconfig.get("SYMBOL_CHANGED"):
-                    if app and mainframe:
-                        app.set_current_Contract(stock_contract(mainframe.symbol_selected))
-            # print(f'Finished {item}')
-            message_q.task_done()
+            if not message_q.empty():
+                item = message_q.get()
+                # print(f'Working on {item}')
+                if item:
+                    if mainframe:
+                        display_message(str(item),mainframe.message_area)
+                    if str(item) == Aiconfig.get("SYMBOL_CHANGED"):
+                        if app and mainframe:
+                            app.set_current_Contract(stock_contract(mainframe.symbol_selected))
+                # print(f'Finished {item}')
+                message_q.task_done()
 
     # Turn-on the worker thread.
     que_thread = StoppableThread(target=worker, daemon=True)
@@ -122,6 +119,10 @@ def main():
         que_thread.stop()
         # listener.stop()
         root.destroy()
+        
+    def tick_data():
+        for key in Aiconfig.get('TICK_BIDASK'):
+            on_press(key)
 
     # function to be called when keyboard buttons are pressed
     def key_press(event):
@@ -156,6 +157,7 @@ def main():
 
     mainframe = AIGUIFrame(root)
     mainframe.order_button.configure(command=exit_app)
+    mainframe.redbutton.configure(command=tick_data)
 
 
     # create menu of the application

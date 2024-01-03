@@ -81,6 +81,20 @@ class Aiconfig():
                 yaml.dump(Aiconfig.config, writefile)
         else:
             raise ValueError(f"Name invalid: {name} or vlue {args}")
+        
+    def append_to_list(name:str, **args):
+        if not Aiconfig.config:
+            if not Aiconfig._load_config():
+                raise FileExistsError(f"can't get configuration file loaded. file name: {SETTING_FILE_NAME}")
+        print("Aiconfig.config[name] is ",Aiconfig.config[name])
+        if name and Aiconfig.config[name] and args and isinstance(Aiconfig.config[name],list):
+            list(Aiconfig.config[name]).append(args)
+
+            with open(SETTING_FILE_NAME, 'w') as writefile:
+                yaml.dump(Aiconfig.config, writefile)
+        else:
+            raise ValueError(f"Name invalid: {name} or vlue {args}")
+
 
 
 # Define data
@@ -148,7 +162,9 @@ def initialize_settings_data():
         'SELL_LMT_PLUS' : -0.05,
 
         'LOGGING_FILE_NAME' : "log/log.txt",
-        'SYMBOL_CHANGED' : 'SYMBOL_CHANGED'
+        'SYMBOL_CHANGED' : 'SYMBOL_CHANGED',
+
+        'VALIDATION_ADDRESS' : "https://finance.yahoo.com/quote/"
 
         }
     

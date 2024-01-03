@@ -4,6 +4,7 @@ from tkinter.scrolledtext import ScrolledText
 from aisettings import Aiconfig
 import logging
 import threading
+import requests
 
 LOGGING_FILE_NAME = Aiconfig.get('LOGGING_FILE_NAME')
 
@@ -50,7 +51,25 @@ class StoppableThread(threading.Thread):
 
     def stopped(self):
         return self._stop_event.is_set()
-    
+
+# check if the give name is an valid asset ticker online. if name is empty. check the asset itself.
+def asset_is_valid(name=""):
+    if name != "":
+        
+        try:
+            res = requests.get(Aiconfig.get('VALIDATION_ADDRESS') + name)
+            if Aiconfig.get('DEBUG'):
+                print("----Response in is_valid funcion is ---------", res)
+                print("Status code is ",res.status_code,
+                        "ticker name is ", name, 
+                        "validation address is ", Aiconfig.get('VALIDATION_ADDRESS'), 
+                        name)
+
+            if res.status_code == 200:
+                return True
+        except Exception as ex:
+            return False
+    return False
 
 import queue
 def test():
