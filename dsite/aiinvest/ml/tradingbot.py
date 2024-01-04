@@ -1,9 +1,7 @@
-#
-# Financial Q-Learning Agent
-#
-# (c) Dr. Yves J. Hilpisch
-# Artificial Intelligence in Finance
-#
+"""
+Trading bot learn to use transflow
+"""
+
 import os
 import random
 import logging
