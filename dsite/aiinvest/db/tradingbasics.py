@@ -119,11 +119,13 @@ def main():
         que_thread.stop()
         # listener.stop()
         root.destroy()
-        
+
     def tick_data():
         for key in Aiconfig.get('TICK_BIDASK'):
             on_press(key)
-
+    def bar_data():
+        for key in Aiconfig.get('REQUIRE_REALTIME_BAR'):
+            on_press(key)
     # function to be called when keyboard buttons are pressed
     def key_press(event):
         
@@ -158,6 +160,7 @@ def main():
     mainframe = AIGUIFrame(root)
     mainframe.order_button.configure(command=exit_app)
     mainframe.redbutton.configure(command=tick_data)
+    mainframe.bar_data_button.configure(command=bar_data)
 
 
     # create menu of the application

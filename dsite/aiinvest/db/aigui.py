@@ -222,8 +222,9 @@ class AIGUIFrame(tk.Frame):
         self.messageVar = Message(self.headframe, text = ourMessage, width=180)
         
         self.button_frame = Frame(self.headframe)
-        self.redbutton = Button(self.button_frame, text = 'Tick Data', fg ='red')
-        self.order_button = ttk.Button(self.button_frame, text='Exit', width=10)
+        self.redbutton = Button(self.button_frame, text = 'Tick Data', fg ='green', width=10)
+        self.bar_data_button = Button(self.button_frame, text = 'Realtime Bar Data', foreground ='green', width=10)
+        self.order_button = Button(self.button_frame, text='Exit',foreground ='green', width=10)
 
         self.symbol_frame = Frame(self.headframe)
 
@@ -273,6 +274,7 @@ class AIGUIFrame(tk.Frame):
         self.symbol_list_box.pack( side = 'bottom' )
 
         self.redbutton.pack( side = 'top')
+        self.bar_data_button.pack(side='top')
         self.order_button.pack(side = 'bottom')
 
         self.graph.pack(side = "top")

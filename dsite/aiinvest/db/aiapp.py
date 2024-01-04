@@ -99,8 +99,12 @@ class AiApp(AiWrapper, AiClient):
          self.tick_bidask_reqId = reqId
     
     def cancelTickByTickData(self, reqId:int):
-         super().cancelTickByTickData(reqId)
-         self.tick_bidask_reqId = -1
+        super().cancelTickByTickData(reqId)
+        self.tick_bidask_reqId = -1
+        message = f'cancelTickByTickData... ReqId:, {reqId}'
+        print(message)
+        if AiApp.has_message_queue():
+             AiApp.message_q.put(message)
 
     def reqRealTimeBars(self,reqId:TickerId, contract:Contract, barSize:int,whatToShow:str,useRTH:bool,realTimeBarsOptions:TagValueList):
         super().reqRealTimeBars(reqId,contract,barSize,whatToShow,useRTH,realTimeBarsOptions)
@@ -109,6 +113,10 @@ class AiApp(AiWrapper, AiClient):
     def cancelRealTimeBars(self,reqId:TickerId):
         super().cancelRealTimeBars(reqId)
         self.realtime_bar_reqId = -1
+        message = f'cancelRealTimeBars... ReqId:, {reqId}'
+        print(message)
+        if AiApp.has_message_queue():
+             AiApp.message_q.put(message)
 
     def reqMktData(self, reqId:TickerId,contract:Contract, genericTickList:str, snapshot:bool,regulatorySnapshot:bool, mktDataOptions:TagValueList):
         super().reqMktData(reqId, contract, genericTickList,snapshot, regulatorySnapshot,mktDataOptions)
@@ -117,6 +125,10 @@ class AiApp(AiWrapper, AiClient):
     def cancelMktData(self,reqId:TickerId):
         super().cancelMktData(reqId)
         self. market_reqId = -1
+        message = f'cancelMktData... ReqId:, {reqId}'
+        print(message)
+        if AiApp.has_message_queue():
+             AiApp.message_q.put(message)
 
     # overide the account Summary method. to get all the account summary information
     def accountSummary(self, reqId: int, account: str, tag: str, value: str,currency: str):
@@ -247,6 +259,13 @@ class AiApp(AiWrapper, AiClient):
 
         if AiApp.has_message_queue():
             AiApp.message_q.put(message) 
+
+    def realtimeBar(self,reqId:TickerId,time:int,open_:float,high:float,low:float,close:float,volume:Decimal,wap:Decimal, count:int):
+        super().realtimeBar(reqId, time, open_,high,low, close, volume, wap,count)
+        message = f'Realtime Bar... ReqId:, {reqId}, time: {time}, open: {open_}, high: {high}, low: {low}, close: {close}, volume:{volume}, wap: {wap}, count: {count}'
+        print(message)
+        if AiApp.has_message_queue():
+             AiApp.message_q.put(message)
 
     def close_contract_data(self, contract:Contract=None):
         message = ""
