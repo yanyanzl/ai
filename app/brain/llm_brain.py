@@ -1,60 +1,42 @@
-"""
-llm_brain.py
-
-AI Brain
-负责：
-1 理解用户输入
-2 选择工具
-3 调用 ToolRouter
-"""
-
+# brain/llm_brain.py
 from app.core.tool_router import tool_router
-
+from typing import Dict, Any
+import openai  # 可替换成本地 LLM
 
 class LLMBrian:
-
     def __init__(self):
-
         self.router = tool_router
 
-    def think(self, message: str):
+    def plan(self, message: str) -> Dict[str, Any]:
         """
-        简单意图识别
+        调用 LLM 生成工具调用计划
+        返回示例：
+        [
+            {"tool": "scan_desktop", "args": {}},
+            {"tool": "clean_temp", "args": {}}
+        ]
         """
-
-        message = message.lower()
-
-        # 文件相关
-        if "桌面" in message or "desktop" in message:
-            return "scan_desktop"
-
-        if "清理" in message or "垃圾" in message:
-            return "clean_temp"
-
-        if "金融" in message or "股票" in message:
-            return "task_finance_example"
-
-        if "demo" in message:
-            return "demo_task"
-
-        return None
+        # TODO: 替换为本地 LLM 调用
+        # 简单演示：
+        tasks = []
+        msg = message.lower()
+        if "桌面" in msg:
+            tasks.append({"tool": "scan_desktop", "args": {}})
+        if "清理" in msg:
+            tasks.append({"tool": "clean_temp", "args": {}})
+        if "demo" in msg:
+            tasks.append({"tool": "demo_task", "args": {}})
+        return tasks
 
     def run(self, message: str):
-
-        tool = self.think(message)
-
-        if not tool:
-            return {
-                "message": "暂时无法理解你的请求"
-            }
-
-        result = self.router.execute(tool)
-
-        return {
-            "tool": tool,
-            "result": result
-        }
-
+        tasks = self.plan(message)
+        results = []
+        for task in tasks:
+            res = self.router.execute(task["tool"], task.get("args", {}))
+            results.append({"tool": task["tool"], "result": res})
+        if not results:
+            return {"message": f"AI 暂时无法理解你的请求. 当前可用的工具列表为:{tool_router.list_tools()}"}
+        return {"tasks": results}
 
 # 单例
 ai_brain = LLMBrian()

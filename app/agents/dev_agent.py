@@ -154,3 +154,14 @@ def generate_agent(agent_name: str, code: str):
         return {"success": f"Agent '{safe_name}' 生成并加载成功"}
     except Exception as e:
         return {"error": str(e)}
+    
+
+# def generate_agent(name: str, code: str):
+#     """
+#     动态生成 Agent 并注册工具
+#     """
+#     try:
+#         exec(code, globals())
+#         return {"message": f"{name} 生成成功"}
+#     except Exception as e:
+#         return {"error": str(e)}
