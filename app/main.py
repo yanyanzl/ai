@@ -18,6 +18,8 @@ from app.agents.system_agent import clean_temp
 from app.agents.finance_agent import task_finance_example
 from app.agents.dev_agent import generate_agent
 import asyncio
+from app.brain.llm_brain import ai_brain
+from typing import Optional, Dict, Any
 
 app = FastAPI(title="Solo AI Platform v1")
 router = tool_router
@@ -30,7 +32,9 @@ load_agents()
 # 请求数据结构
 # -----------------------------
 class ChatRequest(BaseModel):
-    message: str
+    message: Optional[str] = None
+    tool: Optional[str] = None
+    args: Optional[Dict[str, Any]] = None
 
 # --------------------------
 # DevAgent 示例：生成 demo_agent
@@ -58,32 +62,46 @@ print(res)
 def home():
     return {"status": "AI Butler running"}
 
-
+# -----------------------------
+# 调试接口
+# -----------------------------
+@app.get("/tools")
+def tools():
+    from app.core.tool_router import tool_router
+    return tool_router.list_tools()
 
 # --------------------------
 # REST API: 调用工具
 # --------------------------
+
 @app.post("/chat")
-async def chat(request: Request):
-    """
-    请求 JSON:
-    {
-        "tool": "scan_desktop",
-        "args": {"param": "value"}
-    }
-    """
+async def chat(data: ChatRequest):
+
     try:
-        data = await request.json()
-        tool_name = data.get("tool")
-        args = data.get("args", {})
 
-        if not tool_name:
-            return {"error": "必须提供 tool 字段"}
+        # AI 对话模式
+        if data.message:
 
-        result = router.execute(tool_name, args)
-        return result
+            result = ai_brain.run(data.message)
+
+            return result
+
+        # Tool 调用模式
+        if data.tool:
+
+            args = data.args or {}
+
+            result = router.execute(data.tool, args)
+
+            return result
+
+        return {"error": "必须提供 message 或 tool"}
+
     except Exception as e:
+
         return {"error": str(e)}
+
+
 
 # --------------------------
 # Scheduler 任务
@@ -114,13 +132,13 @@ def task_clean():
 # --------------------------
 def init_scheduler():
     # 每1分钟执行 Demo Task
-    add_job(task_demo, trigger="interval", minutes=1)
+    # add_job(task_demo, trigger="interval", minutes=1)
     # 每2分钟执行桌面扫描
     add_job(task_scan, trigger="interval", minutes=2)
     # 每3分钟执行清理临时文件
     add_job(task_clean, trigger="interval", minutes=3)
     # 每4分钟执行金融任务示例
-    add_job(task_finance_example, trigger="interval", minutes=4)
+    # add_job(task_finance_example, trigger="interval", minutes=4)
     # 启动 Scheduler
     start_scheduler()
 
