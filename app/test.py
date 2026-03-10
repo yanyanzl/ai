@@ -1,13 +1,26 @@
-
-
 import requests
+import json
 
-url = "http://127.0.0.1:8000/chat"
+# 局域网 Ollama 地址
+url = "http://192.168.0.216:11434/"
 
-data = {
-    "message": "帮我扫描桌面"
+headers = {
+    "Content-Type": "application/json"
 }
 
-res = requests.post(url, json=data)
+payload = {
+    "model": "llama3.1-optimized",
+    "messages": [
+        {"role": "user", "content": "帮我写一个 Python 函数计算阶乘"}
+    ],
+    "temperature": 0.7,
+    "max_tokens": 200
+}
 
-print(res.json())
+try:
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    response.raise_for_status()
+    data = response.json()
+    print(data)
+except requests.exceptions.RequestException as e:
+    print("请求失败:", e)

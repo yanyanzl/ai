@@ -1,0 +1,22 @@
+# config.yaml
+llm:
+  host: "http://192.168.0.216:11434"
+  model: "llama3.1-optimized"
+  temperature: 0
+  max_tokens: 200
+
+MODEL_NAME: "llama3.1-optimized"
+
+scheduler:
+  tasks:
+    demo_task:
+      minutes: 1
+    scan_desktop:
+      minutes: 2
+    clean_temp:
+      minutes: 3
+    task_finance_example:
+      minutes: 4
+
+logging:
+  level: "INFO"

@@ -1,42 +1,59 @@
-# brain/llm_brain.py
 from app.core.tool_router import tool_router
-from typing import Dict, Any
-import openai  # 可替换成本地 LLM
+from app.config import Config
+from typing import List, Dict, Any
+import requests, json
 
 class LLMBrian:
     def __init__(self):
         self.router = tool_router
+        self.host = Config.get("llm.host")
+        self.model = Config.get("llm.model")
+        self.temperature = Config.get("llm.temperature", 0)
+        self.max_tokens = Config.get("llm.max_tokens", 200)
 
-    def plan(self, message: str) -> Dict[str, Any]:
-        """
-        调用 LLM 生成工具调用计划
-        返回示例：
-        [
-            {"tool": "scan_desktop", "args": {}},
-            {"tool": "clean_temp", "args": {}}
-        ]
-        """
-        # TODO: 替换为本地 LLM 调用
-        # 简单演示：
-        tasks = []
-        msg = message.lower()
-        if "桌面" in msg:
-            tasks.append({"tool": "scan_desktop", "args": {}})
-        if "清理" in msg:
-            tasks.append({"tool": "clean_temp", "args": {}})
-        if "demo" in msg:
-            tasks.append({"tool": "demo_task", "args": {}})
-        return tasks
+    def plan(self, message: str) -> List[Dict[str, Any]]:
+        try:
+            prompt = f"""
+            你是一个 AI Butler。根据用户指令生成工具调用列表。
+            可用工具: {self.router.list_tools()}
+            输出 JSON 数组，每个对象包含:
+            - tool: 工具名称
+            - args: 字典参数
+
+            用户指令: "{message}"
+            """
+
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens
+            }
+            response = requests.post(f"{self.host}/v1/completions", json=payload, timeout=10)
+            response.raise_for_status()
+            text = response.json()["completion"]
+
+            # 尝试解析 JSON
+            start = text.find("[")
+            end = text.rfind("]") + 1
+            tasks = json.loads(text[start:end])
+            return tasks
+        except Exception as e:
+            print("[LLM ERROR]", e)
+            return []
 
     def run(self, message: str):
         tasks = self.plan(message)
         results = []
         for task in tasks:
-            res = self.router.execute(task["tool"], task.get("args", {}))
-            results.append({"tool": task["tool"], "result": res})
+            tool_name = task.get("tool")
+            args = task.get("args", {})
+            if not tool_name:
+                continue
+            res = self.router.execute(tool_name, args)
+            results.append({"tool": tool_name, "result": res})
         if not results:
-            return {"message": f"AI 暂时无法理解你的请求. 当前可用的工具列表为:{tool_router.list_tools()}"}
+            return {"message": "AI 暂时无法理解你的请求"}
         return {"tasks": results}
 
-# 单例
 ai_brain = LLMBrian()

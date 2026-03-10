@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Request
 from app.core.tool_router import tool_router
 from app.core.agent_registry import load_agents
-from app.workflow.scheduler import add_job, start_scheduler
+from app.workflow.scheduler import start_scheduler,add_jobs_from_config
 from app.agents.file_agent import scan_desktop
 from app.agents.system_agent import clean_temp
 from app.agents.finance_agent import task_finance_example
@@ -127,6 +127,14 @@ def task_clean():
     else:
         print(f"[TASK] 删除临时文件数量: {res.get('deleted', 0)}")
 
+
+# 从配置加载任务
+task_funcs = {
+    "scan_desktop": task_scan,
+    "clean_temp": task_clean
+}
+
+
 # --------------------------
 # Scheduler 初始化
 # --------------------------
@@ -134,13 +142,16 @@ def init_scheduler():
     # 每1分钟执行 Demo Task
     # add_job(task_demo, trigger="interval", minutes=1)
     # 每2分钟执行桌面扫描
-    add_job(task_scan, trigger="interval", minutes=2)
+    # add_job(task_scan, trigger="interval", minutes=2)
     # 每3分钟执行清理临时文件
-    add_job(task_clean, trigger="interval", minutes=3)
+    # add_job(task_clean, trigger="interval", minutes=3)
     # 每4分钟执行金融任务示例
     # add_job(task_finance_example, trigger="interval", minutes=4)
+    add_jobs_from_config(task_funcs)
     # 启动 Scheduler
     start_scheduler()
+
+
 
 # --------------------------
 # FastAPI 启动事件
