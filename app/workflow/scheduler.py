@@ -8,7 +8,28 @@
 
 from apscheduler.schedulers.background import BackgroundScheduler
 import traceback
-from app.config import Config
+from app.core.config import Config
+from app.utils.logger import get_logger
+
+logger = get_logger("scheduler")
+
+def wrap_task(func, name: str):
+    """统一任务执行封装"""
+    def wrapper():
+        try:
+            res = func()
+            if not isinstance(res, dict):
+                res = {"message": str(res)}
+            if "error" in res:
+                logger.warning(f"[TASK ERROR] {name}: {res['error']}")
+                return {"task": name, "status": "error", "result": res["error"]}
+            logger.info(f"[TASK OK] {name}: {res.get('message', res)}")
+            return {"task": name, "status": "ok", "result": res.get("message", res)}
+        except Exception as e:
+            logger.error(f"[TASK EXCEPTION] {name}: {e}")
+            return {"task": name, "status": "error", "result": str(e)}
+    return wrapper
+
 
 scheduler = BackgroundScheduler()
 

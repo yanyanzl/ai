@@ -4,6 +4,8 @@ llm:
   model: "llama3.1-optimized"
   temperature: 0
   max_tokens: 200
+  max_retry: 2
+
 
 MODEL_NAME: "llama3.1-optimized"
 
@@ -20,3 +22,6 @@ scheduler:
 
 logging:
   level: "INFO"
+
+finance:
+  test_mode: true

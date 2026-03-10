@@ -1,0 +1,293 @@
+[
+  {
+    "timestamp": "2026-03-10 18:41:40",
+    "test": "Health Check",
+    "request": {
+      "method": "GET",
+      "endpoint": "/"
+    },
+    "response": {
+      "status": "AI Butler running"
+    }
+  },
+  {
+    "timestamp": "2026-03-10 18:41:40",
+    "test": "Tools List",
+    "request": {
+      "method": "GET",
+      "endpoint": "/tools"
+    },
+    "response": [
+      "scan_desktop",
+      "clean_temp",
+      "fetch_market_data",
+      "generate_strategy",
+      "backtest_strategy",
+      "task_finance_example",
+      "generate_agent_with_task",
+      "auto_enhance_agent",
+      "generate_agent",
+      "demo_task"
+    ]
+  },
+  {
+    "timestamp": "2026-03-10 18:41:40",
+    "test": "Tool Call: scan_desktop",
+    "request": {
+      "method": "POST",
+      "endpoint": "/chat",
+      "payload": {
+        "tool": "scan_desktop",
+        "args": {}
+      }
+    },
+    "response": {
+      "tool": "scan_desktop",
+      "result": {
+        "total": 14,
+        "files": [
+          {
+            "name": "CapCut.lnk",
+            "is_dir": false
+          },
+          {
+            "name": "desktop.ini",
+            "is_dir": false
+          },
+          {
+            "name": "Docker Desktop.lnk",
+            "is_dir": false
+          },
+          {
+            "name": "Dropbox.lnk",
+            "is_dir": false
+          },
+          {
+            "name": "Firefox.exe",
+            "is_dir": false
+          },
+          {
+            "name": "HexChat.lnk",
+            "is_dir": false
+          },
+          {
+            "name": "Mulin",
+            "is_dir": true
+          },
+          {
+            "name": "permanent resident permit",
+            "is_dir": true
+          },
+          {
+            "name": "Python",
+            "is_dir": true
+          },
+          {
+            "name": "TikTok.lnk",
+            "is_dir": false
+          },
+          {
+            "name": "uTorrent Web.lnk",
+            "is_dir": false
+          },
+          {
+            "name": "剪映专业版.lnk",
+            "is_dir": false
+          },
+          {
+            "name": "夸克.lnk",
+            "is_dir": false
+          },
+          {
+            "name": "迅雷.lnk",
+            "is_dir": false
+          }
+        ]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-03-10 18:41:40",
+    "test": "Tool Call: clean_temp",
+    "request": {
+      "method": "POST",
+      "endpoint": "/chat",
+      "payload": {
+        "tool": "clean_temp",
+        "args": {}
+      }
+    },
+    "response": {
+      "tool": "clean_temp",
+      "result": {
+        "deleted": 0
+      }
+    }
+  },
+  {
+    "timestamp": "2026-03-10 18:42:33",
+    "test": "AI Call: 帮我扫描桌面并清理临时文件",
+    "request": {
+      "method": "POST",
+      "endpoint": "/chat",
+      "payload": {
+        "message": "帮我扫描桌面并清理临时文件"
+      }
+    },
+    "response": {
+      "tasks": [
+        {
+          "tool": "scan_desktop",
+          "result": {
+            "total": 14,
+            "files": [
+              {
+                "name": "CapCut.lnk",
+                "is_dir": false
+              },
+              {
+                "name": "desktop.ini",
+                "is_dir": false
+              },
+              {
+                "name": "Docker Desktop.lnk",
+                "is_dir": false
+              },
+              {
+                "name": "Dropbox.lnk",
+                "is_dir": false
+              },
+              {
+                "name": "Firefox.exe",
+                "is_dir": false
+              },
+              {
+                "name": "HexChat.lnk",
+                "is_dir": false
+              },
+              {
+                "name": "Mulin",
+                "is_dir": true
+              },
+              {
+                "name": "permanent resident permit",
+                "is_dir": true
+              },
+              {
+                "name": "Python",
+                "is_dir": true
+              },
+              {
+                "name": "TikTok.lnk",
+                "is_dir": false
+              },
+              {
+                "name": "uTorrent Web.lnk",
+                "is_dir": false
+              },
+              {
+                "name": "剪映专业版.lnk",
+                "is_dir": false
+              },
+              {
+                "name": "夸克.lnk",
+                "is_dir": false
+              },
+              {
+                "name": "迅雷.lnk",
+                "is_dir": false
+              }
+            ]
+          }
+        },
+        {
+          "tool": "clean_temp",
+          "result": {
+            "deleted": 0
+          }
+        }
+      ],
+      "summary": "你的桌面上有14个文件，其中包括一些应用程序的快捷方式和配置文件。其中，Mulin、permanent resident permit 和 Python 是目录，而其他都是普通文件。清理临时文件工具未发现任何需要删除的临时文件。"
+    }
+  },
+  {
+    "timestamp": "2026-03-10 18:42:33",
+    "test": "DevAgent Generate",
+    "request": {
+      "method": "POST",
+      "endpoint": "/chat",
+      "payload": {
+        "tool": "generate_agent",
+        "args": {
+          "name": "test_agent",
+          "code": "\nfrom app.tools.tool_decorator import tool\n\n@tool('test_task')\ndef test_task():\n    return {'message':'Test Task executed successfully'}\n"
+        }
+      }
+    },
+    "response": {
+      "tool": "generate_agent",
+      "result": {
+        "error": "generate_agent() got an unexpected keyword argument 'name'",
+        "tool": "generate_agent"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-03-10 18:42:34",
+    "test": "Tool Call: test_task",
+    "request": {
+      "method": "POST",
+      "endpoint": "/chat",
+      "payload": {
+        "tool": "test_task",
+        "args": {}
+      }
+    },
+    "response": {
+      "error": "工具 'test_task' 不存在"
+    }
+  },
+  {
+    "timestamp": "2026-03-10 18:42:34",
+    "test": "FinanceAgent Task",
+    "request": {
+      "method": "POST",
+      "endpoint": "/chat",
+      "payload": {
+        "tool": "task_finance_example"
+      }
+    },
+    "response": {
+      "tool": "task_finance_example",
+      "result": {
+        "market_data": {
+          "symbol": "AAPL",
+          "data": [
+            {
+              "date": "2026-03-10",
+              "close": 150
+            },
+            {
+              "date": "2026-03-09",
+              "close": 152
+            },
+            {
+              "date": "2026-03-08",
+              "close": 148
+            }
+          ]
+        },
+        "strategy": {
+          "strategy": {
+            "symbol": "AAPL",
+            "buy_signal": "MA50 > MA200",
+            "sell_signal": "MA50 < MA200"
+          }
+        },
+        "backtest": {
+          "profit": 4.5
+        }
+      }
+    }
+  }
+]

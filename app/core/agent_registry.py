@@ -9,6 +9,9 @@ agent_registry.py
 import importlib
 import pkgutil
 import app.agents
+from app.utils.logger import get_logger
+
+logger = get_logger("agent_registry")
 
 def load_agents():
     """
@@ -16,8 +19,14 @@ def load_agents():
     """
     package = app.agents
     for _, module_name, _ in pkgutil.iter_modules(package.__path__):
+
+        module_path = f"app.agents.{module_name}"
+
         try:
-            importlib.import_module(f"app.agents.{module_name}")
-            print(f"[INFO] Agent '{module_name}' 加载成功")
+
+            importlib.import_module(module_path)
+
+            logger.info(f"Agent loaded: {module_name}")
+
         except Exception as e:
-            print(f"[ERROR] 加载 Agent '{module_name}' 失败: {e}")
+            logger.error(f"Agent load failed: {module_name}")

@@ -37,7 +37,9 @@ tool_decorator.py
 """
 
 from app.core.tool_router import tool_router
+from app.utils.logger import get_logger
 
+logger = get_logger("tool_decorator")
 
 def tool(name: str):
     """
@@ -51,7 +53,15 @@ def tool(name: str):
 
     def decorator(func):
 
-        tool_router.register(name, func)
+        try:
+
+            tool_router.register(name, func)
+
+            logger.info(f"Tool decorator registered: {name}")
+
+        except Exception as e:
+
+            logger.error(f"Tool register failed: {name}")
 
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)

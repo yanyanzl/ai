@@ -48,7 +48,9 @@ Solo AI Platform 核心组件
 
 import traceback
 from typing import Callable, Dict, Any
+from app.utils.logger import get_logger
 
+logger = get_logger("tool_router")
 
 class ToolRouter:
     """
@@ -72,13 +74,15 @@ class ToolRouter:
         """
 
         if not name:
+            logger.warning(f"工具名称不能为空")
             raise ValueError("工具名称不能为空")
 
         if name in self.tools:
-            print(f"[WARNING] Tool '{name}' 已存在，将覆盖")
+            # print(f"[WARNING] Tool '{name}' 已存在，将覆盖")
+            logger.warning(f"[WARNING] Tool '{name}' 已存在，将覆盖")
 
         self.tools[name] = func
-        print(f"[TOOL REGISTERED] {name}")
+        logger.info(f"Tool registered: {name}")
 
     # --------------------------
     # 执行工具
@@ -95,9 +99,11 @@ class ToolRouter:
             args = {}
 
         if name not in self.tools:
+            logger.error(f"Tool not found: {name}")
+
             return {
                 "error": f"工具 '{name}' 不存在",
-                "available_tools": list(self.tools.keys())
+                "available_tools": self.list_tools()
             }
 
         tool_func = self.tools[name]
@@ -115,7 +121,7 @@ class ToolRouter:
 
         except Exception as e:
 
-            print(f"[TOOL ERROR] {name}")
+            logger.exception("Tool execution failed")
             traceback.print_exc()
 
             return {

@@ -1,33 +1,61 @@
 """
 system_agent.py
 
-系统管理 Agent 示例
-- 清理临时文件
-- 获取 CPU/内存信息
+系统维护 Agent
+
+提供工具：
+
+clean_temp
 """
 
-import os
 import tempfile
+import os
+
 from app.tools.tool_decorator import tool
+from app.utils.logger import get_logger
+
+logger = get_logger("system_agent")
+
 
 @tool("clean_temp")
 def clean_temp():
     """
-    清理临时文件夹
-    返回:
-        {"deleted": int}
+    清理系统临时文件
     """
-    count = 0
+
     try:
+
         temp_dir = tempfile.gettempdir()
-        for f in os.listdir(temp_dir):
+
+        logger.info(f"Cleaning temp directory: {temp_dir}")
+
+        files = os.listdir(temp_dir)
+
+        deleted = 0
+
+        for f in files:
+
             path = os.path.join(temp_dir, f)
+
             try:
+
                 if os.path.isfile(path):
+
                     os.remove(path)
-                    count += 1
-            except Exception as e:
-                print(f"[WARN] 删除文件失败: {path} -> {e}")
-        return {"deleted": count}
+
+                    deleted += 1
+
+            except Exception:
+                pass
+
+        return {
+            "deleted": deleted
+        }
+
     except Exception as e:
-        return {"error": str(e)}
+
+        logger.exception("clean_temp failed")
+
+        return {
+            "error": str(e)
+        }
