@@ -9,7 +9,7 @@ class Plugin(PluginBase):
 
     def register(self, router):
 
-        router.register("scan_desktop", self.scan_desktop)
+        router.register("scan_desktop_v1", self.scan_desktop)
 
     def scan_desktop(self):
         """

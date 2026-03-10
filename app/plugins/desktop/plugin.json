@@ -1,0 +1,22 @@
+{
+  "name": "scan_desktop",
+  "description": "扫描桌面文件",
+  "version": "1.0",
+  "enabled": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "folder": {
+        "type": "string",
+        "default": "C:/Users/Public/Desktop",
+        "description": "扫描的目标文件夹路径"
+      },
+      "include_hidden": {
+        "type": "boolean",
+        "default": false,
+        "description": "是否包含隐藏文件"
+      }
+    },
+    "required": []
+  }
+}

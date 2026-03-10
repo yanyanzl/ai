@@ -1,0 +1,22 @@
+{
+  "name": "NEW_PLUGIN_NAME",
+  "description": "在这里填写插件功能描述",
+  "version": "1.0",
+  "enabled": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "folder": {
+        "type": "string",
+        "default": "C:/Users/Public/Desktop",
+        "description": "需要扫描的文件夹路径"
+      },
+      "include_hidden": {
+        "type": "boolean",
+        "default": false,
+        "description": "是否包含隐藏文件"
+      }
+    },
+    "required": []
+  }
+}

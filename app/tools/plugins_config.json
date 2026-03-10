@@ -1,0 +1,87 @@
+[
+  {
+    "name": "scan_desktop",
+    "description": "扫描桌面文件",
+    "parameters": {
+      "folder": {
+        "type": "string",
+        "default": "C:/Users/Public/Desktop",
+        "description": "扫描的目录路径"
+      },
+      "include_hidden": {
+        "type": "boolean",
+        "default": false,
+        "description": "是否包含隐藏文件"
+      }
+    }
+  },
+  {
+    "name": "clean_temp",
+    "description": "清理临时文件",
+    "parameters": {
+      "folder": {
+        "type": "string",
+        "default": "C:/Users/Public/Temp",
+        "description": "清理的临时文件目录"
+      },
+      "force": {
+        "type": "boolean",
+        "default": false,
+        "description": "是否强制删除"
+      }
+    }
+  },
+  {
+    "name": "fetch_market_data",
+    "description": "获取股票市场数据",
+    "parameters": {
+      "symbol": {
+        "type": "string",
+        "default": "AAPL",
+        "description": "股票代码"
+      },
+      "days": {
+        "type": "int",
+        "default": 7,
+        "description": "获取最近几天的行情"
+      }
+    }
+  },
+  {
+    "name": "generate_strategy",
+    "description": "生成交易策略",
+    "parameters": {
+      "symbol": {
+        "type": "string",
+        "default": "AAPL",
+        "description": "股票代码"
+      },
+      "method": {
+        "type": "string",
+        "default": "MA_Crossover",
+        "description": "策略生成方法"
+      }
+    }
+  },
+  {
+    "name": "backtest_strategy",
+    "description": "回测交易策略",
+    "parameters": {
+      "strategy_id": {
+        "type": "string",
+        "default": "",
+        "description": "策略标识"
+      },
+      "period_days": {
+        "type": "int",
+        "default": 30,
+        "description": "回测周期天数"
+      }
+    }
+  },
+  {
+    "name": "task_finance_example",
+    "description": "示例财务任务",
+    "parameters": {}
+  }
+]
