@@ -110,42 +110,6 @@ def generate_agent_with_task(agent_name: str, code: str, schedule: dict = None):
         return {"success": f"Agent '{safe_name}' 生成、加载成功"}
     except Exception as e:
         return {"error": str(e)}
-# def generate_agent_with_task(agent_name: str, code: str, schedule: dict = None):
-#     """
-#     生成 Agent + 自动注册 + 可选 Scheduler
-#     """
-#     safe_name = agent_name.lower()
-#     if safe_name in ["file_agent", "system_agent", "dev_agent", "finance_agent"]:
-#         return {"error": f"禁止覆盖核心 Agent: {safe_name}"}
-
-#     if not is_safe_code(code):
-#         return {"error": "代码存在危险操作"}
-
-#     file_path = AGENT_DIR / f"{safe_name}.py"
-#     if file_path.exists():
-#         return {"error": f"Agent 文件已存在: {file_path}"}
-
-#     try:
-#         # 写入文件
-#         with open(file_path, "w", encoding="utf-8") as f:
-#             f.write(code)
-
-#         # 自动导入
-#         importlib.import_module(f"app.agents.{safe_name}")
-#         print(f"[INFO] 新 Agent '{safe_name}' 自动加载成功")
-
-#         # 注册 Scheduler
-#         if schedule:
-#             tool_names = [name for name in code.split("@tool(") if name]
-#             for t in tool_names:
-#                 t_name = t.split("'")[1]
-#                 func = lambda tn=t_name: import_tool_and_execute(tn)
-#                 add_job(func, **schedule)
-#             print(f"[INFO] Scheduler 任务已注册: {schedule}")
-
-#         return {"success": f"Agent '{safe_name}' 生成、加载成功"}
-#     except Exception as e:
-#         return {"error": str(e)}
 
 # --------------------------
 # 自我增强函数
@@ -214,14 +178,3 @@ def generate_agent(agent_name: str, code: str):
         return {"success": f"Agent '{safe_name}' 生成并加载成功"}
     except Exception as e:
         return {"error": str(e)}
-    
-
-# def generate_agent(name: str, code: str):
-#     """
-#     动态生成 Agent 并注册工具
-#     """
-#     try:
-#         exec(code, globals())
-#         return {"message": f"{name} 生成成功"}
-#     except Exception as e:
-#         return {"error": str(e)}

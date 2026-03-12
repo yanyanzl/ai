@@ -1,13 +1,15 @@
 # config.yaml
 llm:
   host: "http://192.168.0.216:11434"
-  model: "llama3.1-optimized"
+  # model: "llama3.1-optimized"
+  model: "qwen2.5-coder:3b"
   temperature: 0
   max_tokens: 200
   max_retry: 2
 
 
-MODEL_NAME: "llama3.1-optimized"
+# MODEL_NAME: "llama3.1-optimized"
+MODEL_NAME: "qwen2.5-coder:3b"
 
 scheduler:
   tasks:

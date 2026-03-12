@@ -2,19 +2,34 @@ from app.core.tool_router import tool_router
 from app.core.config import Config
 from app.utils.logger import get_logger
 from app.core.plugin_manager import PluginManager
+from app.core.context_builder import ContextBuilder
+from app.core.memory_manager import MemoryManager
+from app.agents.planner_agent import PlannerAgent
+from app.agents.task_graph import TaskGraph
+
 from typing import List, Dict, Any
 import requests, re, json5, time, math
 
 logger = get_logger("llm_brain")
 
 
-class LLMBrainV3:
+class LLMBrain:
+    """
+    Phase-2 升级版 LLM Brain
+    功能：
+        - 支持 PlannerAgent 生成任务计划
+        - TaskGraph 执行任务（插件/工具兼容）
+        - LLM 输出总结（summarize）
+        - Memory JSON 日志化
+        - 个性化身份上下文（SOUL.md / USER.md）
+        - 容错与 fallback 机制
+        - 统一日志输出
+    """
 
     def __init__(self):
-
         self.router = tool_router
         self.plugin_manager = PluginManager(self.router)
-        self.plugin_manager.load_plugins()  # 加载所有插件
+        self.plugin_manager.load_plugins()
 
         self.host = Config.get("llm.host")
         self.model = Config.get("llm.model")
@@ -30,25 +45,48 @@ class LLMBrainV3:
         self.llm_fail_threshold = 5
         self.llm_disable_until = 0
 
-    # ------------------------------------------------
+        # 上下文 / memory / planner
+        self.context_builder = ContextBuilder()
+        self.memory = MemoryManager()
+        self.planner = PlannerAgent(self)
+
+    # ---------------------------
     # LLM 是否可用
-    # ------------------------------------------------
+    # ---------------------------
     def llm_available(self) -> bool:
         return time.time() >= self.llm_disable_until
 
-    # ------------------------------------------------
+    # ---------------------------
+    # 构建 prompt（注入人格化上下文）
+    # ---------------------------
+    def build_prompt(self, message: str, context: List[Dict[str, str]] = None) -> str:
+        """
+        构建 LLM prompt，包含：
+        - 对话上下文
+        - 用户消息
+        - SOUL.md / USER.md 个性化信息
+        """
+        context_text = ""
+        if context:
+            context_text = "\n".join([f"{m['role']}: {m['content']}" for m in context])
+        try:
+            identity_context = self.context_builder.build_identity_context()
+        except Exception as e:
+            logger.exception(f"[PROMPT] Failed to load identity context: {e}")
+            identity_context = ""
+
+        full_prompt = f"{identity_context}\n{context_text}\nuser: {message}\nassistant:"
+        return full_prompt
+
+    # ---------------------------
     # 调用 LLM（指数退避 + 容错）
-    # ------------------------------------------------
+    # ---------------------------
     def call_llm(self, prompt: str, context: List[Dict[str, str]] = None) -> str | None:
         if not self.llm_available():
             logger.warning("LLM disabled by circuit breaker")
             return None
 
-        full_prompt = ""
-        if context:
-            for msg in context:
-                full_prompt += f"{msg['role']}: {msg['content']}\n"
-        full_prompt += f"user: {prompt}\nassistant:"
+        full_prompt = self.build_prompt(prompt, context)
 
         payload = {
             "model": self.model,
@@ -59,6 +97,7 @@ class LLMBrainV3:
 
         for attempt in range(self.max_retry + 1):
             try:
+                logger.info(f"call_llm sending request to {self.host}. the message is: \n {payload}")
                 resp = self.session.post(
                     f"{self.host}/api/generate",
                     json=payload,
@@ -82,157 +121,194 @@ class LLMBrainV3:
             logger.error("LLM disabled for 120 seconds")
         return None
 
-    # ------------------------------------------------
-    # 清理输出
-    # ------------------------------------------------
+    # ---------------------------
+    # 清理 LLM 输出
+    # ---------------------------
     def clean_llm_output(self, text: str) -> str:
-        # 去掉不可见控制字符
         text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', text)
-        # 替换中文引号为英文引号
         text = text.replace("’", "'").replace("“", '"').replace("”", '"')
-        # 多空格合并为一个空格，并去掉首尾空格
         return re.sub(r'\s+', ' ', text.strip())
 
-    # ------------------------------------------------
-    # 生成工具计划（支持插件）
-    # ------------------------------------------------
-    def plan(self, message: str, context: List[Dict[str, str]] = None) -> List[Dict[str, Any]]:
-        available_tools = self.router.list_tools()
-        available_plugins = self.plugin_manager.list_plugins()
-        full_context = context or []
-        context_text = "\n".join([f"{m['role']}: {m['content']}" for m in full_context])
-
-        prompt = f"""
-你是 AI Butler。
-参考对话上下文:
-{context_text}
-用户请求:
-{message}
-可用工具:
-{available_tools}
-可用插件:
-{available_plugins}
-任务:
-生成工具调用计划。
-输出规则:
-- JSON 数组
-- 每个对象包含 tool, args, 可选 plugin
-- 不允许解释
-"""
-        logger.info(f"Planning for message: {message}")
-
-        text = self.call_llm(prompt)
-        if not text:
-            logger.warning("LLM planning failed, fallback empty tasks")
-            return []
-
-        try:
-            raw_tasks = json5.loads(text)
-        except Exception as e:
-            logger.warning(f"Plan parse failed: {e}")
-            return []
-
-        fixed_tasks = []
-        for t in raw_tasks:
-            # 支持 ["tool", {}] 或 {"tool":..., "args":..., "plugin":...}
-            if isinstance(t, dict) and "tool" in t:
-                fixed_tasks.append(t)
-            elif isinstance(t, list) and len(t) >= 1:
-                fixed_tasks.append({
-                    "tool": t[0],
-                    "args": t[1] if len(t) > 1 and isinstance(t[1], dict) else {}
-                })
-            else:
-                logger.warning(f"[PLAN] invalid task: {t}")
-
-        # 过滤不可用工具 / 插件
-        tasks = []
-        for t in fixed_tasks:
-            tool_name = t.get("tool")
-            plugin_name = t.get("plugin")
-            if plugin_name and plugin_name not in available_plugins:
-                logger.warning(f"[PLAN] plugin not available: {plugin_name}")
-                continue
-            if not plugin_name and tool_name not in available_tools:
-                logger.warning(f"[PLAN] tool not available: {tool_name}")
-                continue
-            tasks.append(t)
-
-        logger.info(f"Plan generated: {tasks}")
-        return tasks
-
-    # ------------------------------------------------
-    # 执行工具（支持插件）
-    # ------------------------------------------------
+    # ---------------------------
+    # 执行任务（TaskGraph / 插件 / 工具）
+    # ---------------------------
     def run(self, tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        执行任务计划（支持插件及本地工具）
+        返回每步执行结果及 meta 信息
+        """
         results = []
-        for task in tasks:
+        for idx, task in enumerate(tasks, start=1):
             tool_name = task.get("tool")
             args = task.get("args") or {}
             plugin_name = task.get("plugin")
+            start_time = time.time()
 
-            if plugin_name:
-                plugin = self.plugin_manager.plugins.get(plugin_name, {}).get("instance")
-                if not plugin:
-                    results.append({"tool": tool_name, "plugin": plugin_name,
-                                    "result": f"Plugin {plugin_name} not loaded"})
-                    continue
-                try:
+            logger.info(f"[RUN] Executing task {idx}/{len(tasks)}: {tool_name}, plugin={plugin_name}")
+            try:
+                if plugin_name:
+                    plugin_data = self.plugin_manager.plugins.get(plugin_name, {})
+                    plugin = plugin_data.get("instance")
+                    if not plugin:
+                        msg = f"Plugin {plugin_name} not loaded"
+                        logger.warning(f"[RUN] {msg}")
+                        results.append({"tool": tool_name, "plugin": plugin_name, "result": msg})
+                        continue
                     res = plugin.execute(tool_name, args)
-                except Exception as e:
-                    logger.exception(f"[RUN] plugin tool error: {tool_name} ({plugin_name})")
-                    res = {"error": str(e)}
-                results.append({"tool": tool_name, "plugin": plugin_name, "result": res})
-            else:
-                if tool_name not in self.router.list_tools():
-                    results.append({"tool": tool_name, "result": f"Tool {tool_name} not found"})
-                    continue
-                try:
+                else:
+                    if tool_name not in self.router.list_tools():
+                        msg = f"Tool {tool_name} not found"
+                        logger.warning(f"[RUN] {msg}")
+                        results.append({"tool": tool_name, "result": msg})
+                        continue
                     res = self.router.execute(tool_name, args)
-                except Exception as e:
-                    logger.exception(f"[RUN] tool error: {tool_name}")
-                    res = {"error": str(e)}
-                results.append({"tool": tool_name, "result": res})
+
+                results.append({
+                    "tool": tool_name,
+                    "plugin": plugin_name,
+                    "result": res,
+                    "executed_at": time.time(),
+                    "duration": time.time() - start_time
+                })
+
+            except Exception as e:
+                logger.exception(f"[RUN] Error executing task {tool_name} plugin={plugin_name}")
+                results.append({
+                    "tool": tool_name,
+                    "plugin": plugin_name,
+                    "result": {"error": str(e)},
+                    "executed_at": time.time(),
+                    "duration": time.time() - start_time
+                })
+
+        logger.info(f"[RUN] All tasks executed, total={len(results)}")
         return results
 
-    # ------------------------------------------------
-    # 汇总
-    # ------------------------------------------------
+    # ---------------------------
+    # 汇总任务结果
+    # ---------------------------
     def summarize(self, context: List[Dict[str, str]], results: List[Dict[str, Any]]) -> str:
-        context_text = "\n".join([f"{m['role']}: {m['content']}" for m in context])
-        prompt = f"""
+        """
+        将任务执行结果和对话上下文总结为自然语言回复
+        """
+        try:
+            context_text = "\n".join([f"{m['role']}: {m['content']}" for m in context])
+            results_text = json5.dumps(results, indent=2, ensure_ascii=False)
+
+            prompt = f"""
 参考对话:
 {context_text}
-工具执行结果:
-{results}
-请总结并自然语言回答用户。
-"""
-        summary = self.call_llm(prompt)
-        if not summary:
-            return "任务已执行，但 AI 总结不可用（LLM 离线）"
-        return summary
 
-    # ------------------------------------------------
+任务执行结果:
+{results_text}
+
+请用自然语言总结，并向用户友好反馈：
+- 核心结论
+- 已执行操作
+- 如有需要的下一步建议
+"""
+            summary = self.call_llm(prompt)
+            if not summary:
+                logger.warning("[SUMMARIZE] LLM returned empty summary")
+                return "任务已执行，但 AI 总结不可用（LLM 离线）"
+
+            logger.info("[SUMMARIZE] Summary generated successfully")
+            return summary
+
+        except Exception as e:
+            logger.exception(f"[SUMMARIZE] Failed to summarize: {e}")
+            return "任务执行完成，但 AI 总结不可用（内部错误）"
+
+    # ---------------------------
     # 主入口
-    # ------------------------------------------------
+    # ---------------------------
     def handle(self, message: str, session_id: str = "default") -> Dict[str, Any]:
+        """
+        Main entry point for processing a user message.
+        Workflow:
+            1. Load session conversation
+            2. Inject identity context (首次)
+            3. Append user message
+            4. Memory log
+            5. PlannerAgent generate task plan
+            6. Execute TaskGraph
+            7. Summarize results
+            8. Append assistant response to conversation + memory
+        """
         if session_id not in self.conversations:
             self.conversations[session_id] = []
 
-        self.conversations[session_id].append({"role": "user", "content": message})
+            # ===== 首次注入身份上下文 =====
+            try:
+                identity_context = self.context_builder.build_identity_context()
+                self.conversations[session_id].append({
+                    "role": "system",
+                    "content": identity_context
+                })
+                logger.info(f"[HANDLE] Loaded identity context for session {session_id}")
+            except Exception as e:
+                logger.exception(f"[HANDLE] Failed to load identity context: {e}")
 
-        tasks = self.plan(message, context=self.conversations[session_id])
+        # ===== Append user message =====
+        self.conversations[session_id].append({"role": "user", "content": message})
+        logger.info(f"[HANDLE] Received user message: {message}")
+
+        # ===== Memory log =====
+        try:
+            self.memory.append_daily_log({"role": "user", "content": message})
+        except Exception:
+            logger.exception("[HANDLE] Memory logging failed for user message")
+
+        # ===== PlannerAgent: generate task plan =====
+        try:
+            tasks = self.planner.plan(message)
+            logger.info(f"[HANDLE] Planner generated {len(tasks)} tasks")
+        except Exception as e:
+            logger.exception(f"[HANDLE] PlannerAgent failed: {e}")
+            tasks = []
+
+        # ===== 如果没有任务，fallback 到直接 LLM 回复 =====
         if not tasks:
-            reply = self.call_llm(message, context=self.conversations[session_id]) or \
-                    "AI 当前不可用，请稍后再试。"
+            try:
+                reply = self.call_llm(message, context=self.conversations[session_id]) or \
+                        "AI 当前不可用，请稍后再试。"
+            except Exception as e:
+                logger.exception(f"[HANDLE] Fallback LLM call failed: {e}")
+                reply = "AI 当前不可用，请稍后再试。"
+
             self.conversations[session_id].append({"role": "assistant", "content": reply})
+            try:
+                self.memory.append_daily_log({"role": "assistant", "content": reply})
+            except Exception:
+                logger.exception("[HANDLE] Memory logging failed for assistant fallback")
+
             return {"message": reply}
 
-        results = self.run(tasks)
-        summary = self.summarize(self.conversations[session_id], results)
+        # ===== Execute TaskGraph =====
+        try:
+            graph = TaskGraph(tasks, self)
+            results = graph.execute()
+            logger.info(f"[HANDLE] TaskGraph executed {len(results)} steps")
+        except Exception as e:
+            logger.exception(f"[HANDLE] TaskGraph execution failed: {e}")
+            results = self.run(tasks)  # fallback to run()
+
+        # ===== Summarize results =====
+        try:
+            summary = self.summarize(self.conversations[session_id], results)
+        except Exception as e:
+            logger.exception(f"[HANDLE] Summarization failed: {e}")
+            summary = "任务执行完成，但 AI 总结不可用"
+
+        # ===== Append assistant response =====
         self.conversations[session_id].append({"role": "assistant", "content": summary})
+        try:
+            self.memory.append_daily_log({"role": "assistant", "content": summary})
+        except Exception:
+            logger.exception("[HANDLE] Memory logging failed for assistant summary")
 
         return {"tasks": results, "summary": summary}
 
 
-agent_brain = LLMBrainV3()
+# 初始化全局 agent
+agent_brain = LLMBrain()
