@@ -25,3 +25,10 @@ logging:
 
 finance:
   test_mode: true
+
+weather:
+  # Get your free API key from https://openweathermap.org/api
+  api_key: ""  # Add your OpenWeatherMap API key here
+  default_city: "London"
+  default_country_code: "UK"
+  timeout: 10

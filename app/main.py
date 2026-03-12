@@ -76,6 +76,8 @@ task_funcs = {
     "scan_desktop": wrap_task(scan_desktop, "scan_desktop"),
     "clean_temp": wrap_task(clean_temp, "clean_temp"),
     "finance_example": wrap_task(task_finance_example, "finance_example"),
+    # Optional weather task - uncomment if you want to schedule weather checks
+    # "weather_health": wrap_task(lambda: router.execute("weather_health_check"), "weather_health"),
 }
 
 # --------------------------
